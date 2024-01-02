@@ -1,0 +1,64 @@
+#ifdef __IN_ECLIPSE__
+//This is a automatic generated file
+//Please do not modify this file
+//If you touch this file your change will be overwritten during the next build
+//This file has been generated on 2023-12-18 10:56:51
+
+#include "Arduino.h"
+#include "Arduino.h"
+#include "ZeroRegs.h"
+#include "SdFat.h"
+#include <RTCZero.h>
+#include <time.h>
+#include <flashstorage.h>
+#include "LowPower.h"
+#include "adc122c04.h"
+#include "wiring_private.h"
+
+void dateTime(uint16_t* date, uint16_t* time, uint8_t* ms10) ;
+void rtc_int() ;
+int i2c_master_adc_cmd(uint8_t cmd) ;
+void i2c_master_adc_cmd_reg(uint8_t cmd, uint8_t reg) ;
+void i2c_master_adc_rdata(uint8_t len, uint8_t buf[]) ;
+bool tcIsSyncing() ;
+void tcStartCounter() ;
+void tcReset() ;
+void tcDisable() ;
+void TC5_Handler (void) ;
+void tcConfigure(int sampleRate) ;
+void i2c_master_init() ;
+void adc_convert_isr(void) ;
+void EVSYS_Handler(void) ;
+void card_det_isr(void) ;
+void setup() ;
+void print2digits(int number) ;
+void print_date(tm *t) ;
+void open_bin_file(char *new_name) ;
+void * findCommand(char * command) ;
+int executeCommand(char *line) ;
+int cmd_help(char *line) ;
+int cmd_regs(char *line) ;
+int cmd_adc(char *line) ;
+int cmd_start(char *line) ;
+int cmd_stop(char *line) ;
+int cmd_startlater(char *line) ;
+int cmd_starttime(char *line) ;
+int cmd_time(char *line) ;
+int cmd_ls(char *line) ;
+int cmd_debug(char *line) ;
+int cmd_sleep(char *line) ;
+int cmd_fcorr(char *line) ;
+int cmd_sample(char *line) ;
+int cmd_set(char *line) ;
+int cmd_text(char *line) ;
+int cmd_file(char *line) ;
+int cmd_reg1(char *line) ;
+int cmd_format(char *line) ;
+int cmd_sync(char *line) ;
+int read_line(char c) ;
+void loop() ;
+
+#include "adc122c04_direct.ino"
+
+
+#endif
