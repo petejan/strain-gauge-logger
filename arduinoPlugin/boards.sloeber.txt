@@ -46,7 +46,6 @@ adafruit_feather_m0.upload.native_usb=true
  
 # Build 
 adafruit_feather_m0.build.mcu=cortex-m0plus 
-adafruit_feather_m0.build.f_cpu=48000000L 
 adafruit_feather_m0.build.usb_product=Feather M0 
 adafruit_feather_m0.build.usb_manufacturer=Adafruit 
 adafruit_feather_m0.build.board=SAMD_ZERO 
@@ -78,6 +77,10 @@ adafruit_feather_m0.menu.usbstack.tinyusb.build.flags.usbstack=-DUSE_TINYUSB
 adafruit_feather_m0.menu.debug.off=Off 
 adafruit_feather_m0.menu.debug.on=On 
 adafruit_feather_m0.menu.debug.on.build.flags.debug=-g 
+adafruit_feather_m0.menu.speed.48=48 MHz (standard)
+adafruit_feather_m0.menu.speed.48.build.f_cpu=48000000L
+adafruit_feather_m0.menu.speed.8=8 MHz (no PLL)
+adafruit_feather_m0.menu.speed.8.build.f_cpu=8000000L
 
  
 # ----------------------------------- 
@@ -385,7 +388,6 @@ adafruit_qtpy_m0.upload.native_usb=true
 # Build 
 adafruit_qtpy_m0.build.mcu=cortex-m0plus 
 adafruit_qtpy_m0.build.usb_product=QT Py M0 
-adafruit_qtpy_m0.build.f_cpu=48000000L
 adafruit_qtpy_m0.build.usb_manufacturer=Adafruit 
 adafruit_qtpy_m0.build.board=QTPY_M0 
 adafruit_qtpy_m0.build.core=arduino 
@@ -416,6 +418,10 @@ adafruit_qtpy_m0.menu.usbstack.tinyusb.build.flags.usbstack=-DUSE_TINYUSB
 adafruit_qtpy_m0.menu.debug.off=Off 
 adafruit_qtpy_m0.menu.debug.on=On 
 adafruit_qtpy_m0.menu.debug.on.build.flags.debug=-g 
+adafruit_qtpy_m0.menu.speed.48=48 MHz (standard)
+adafruit_qtpy_m0.menu.speed.48.build.f_cpu=48000000L
+adafruit_qtpy_m0.menu.speed.8=8 MHz (no PLL)
+adafruit_qtpy_m0.menu.speed.8.build.f_cpu=8000000L
 
 
  
