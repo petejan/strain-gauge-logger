@@ -85,6 +85,7 @@ CMD cmds[] =
 /* Create an rtc object */
 RTCZero rtc;
 
+#ifdef ADAFRUIT_FEATHER_M0
 const uint8_t ADC_INT = 5;
 const uint8_t PIN_WRITE_LED = 8;
 const uint8_t SAMPLE_PIN = 13;
@@ -97,16 +98,38 @@ const uint8_t MISSED_SAMPLE_PIN = A2;
 const uint8_t LED_RED_PIN = 13;
 const uint8_t LED_GREEN_PIN = 8;
 
+// SD chip select pin.
+const uint8_t SD_CS_PIN = 4;
+
 #define I2C_SERCOM SERCOM3
+#endif
+#ifdef ARDUINO_QTPY_M0
+
+const uint8_t ADC_INT = A0;
+const uint8_t ADC_PWR_PIN = A1;
+
+const uint8_t SD_CAR_DET_PIN = A2;
+
+// SD chip select pin.
+const uint8_t SD_CS_PIN = A3;
+
+//const uint8_t PIN_WRITE_LED = 8;
+//const uint8_t SAMPLE_PIN = 13;
+//const uint8_t SLEEP_PIN = 11;
+
+//const uint8_t MISSED_SAMPLE_PIN = A2;
+
+//const uint8_t LED_RED_PIN = 13;
+//const uint8_t LED_GREEN_PIN = 8;
+
+#define I2C_SERCOM SERCOM1
+#endif
 
 //------------------------------------------------------------------------------
 // Note: Uno will not support SD_FAT_TYPE = 3.
 // SD_FAT_TYPE = 0 for SdFat/File as defined in SdFatConfig.h,
 // 1 for FAT16/FAT32, 2 for exFAT, 3 for FAT16/FAT32 and exFAT.
 #define SD_FAT_TYPE 1
-
-// SD chip select pin.
-const uint8_t SD_CS_PIN = 4;
 
 // Max SPI rate for AVR is 10 MHz for F_CPU 20 MHz, 8 MHz for F_CPU 16 MHz.
 #define SPI_CLOCK SD_SCK_MHZ(1)
@@ -311,22 +334,22 @@ volatile uint16_t i2c_timer;
 int i2c_master_adc_cmd(uint8_t cmd)
 {
 	/* Acknowledge section is set as ACK signal by writing 0 in ACKACT bit */
-	SERCOM3->I2CM.CTRLB.reg &= ~SERCOM_I2CM_CTRLB_ACKACT;
-	while(SERCOM3->I2CM.SYNCBUSY.bit.SYSOP);
+	I2C_SERCOM->I2CM.CTRLB.reg &= ~SERCOM_I2CM_CTRLB_ACKACT;
+	while(I2C_SERCOM->I2CM.SYNCBUSY.bit.SYSOP);
 	/* slave address with Write(0) */
-	SERCOM3->I2CM.ADDR.reg = (ADC122C04_ADDRESS << 1) | 0;
+	I2C_SERCOM->I2CM.ADDR.reg = (ADC122C04_ADDRESS << 1) | 0;
 
 	i2c_timer = 100;
-	while ((!SERCOM3->I2CM.INTFLAG.bit.MB) && (i2c_timer > 0)) { i2c_timer--; };
+	while ((!I2C_SERCOM->I2CM.INTFLAG.bit.MB) && (i2c_timer > 0)) { i2c_timer--; };
 
-	SERCOM3->I2CM.DATA.reg = cmd;
-	while(SERCOM3->I2CM.SYNCBUSY.bit.SYSOP);
+	I2C_SERCOM->I2CM.DATA.reg = cmd;
+	while(I2C_SERCOM->I2CM.SYNCBUSY.bit.SYSOP);
 
 	i2c_timer = 100;
-	while ((!SERCOM3->I2CM.INTFLAG.bit.MB) && (i2c_timer > 0)) { i2c_timer--; };
+	while ((!I2C_SERCOM->I2CM.INTFLAG.bit.MB) && (i2c_timer > 0)) { i2c_timer--; };
 
-	SERCOM3->I2CM.CTRLB.bit.CMD = 0x3;
-	while(SERCOM3->I2CM.SYNCBUSY.bit.SYSOP);
+	I2C_SERCOM->I2CM.CTRLB.bit.CMD = 0x3;
+	while(I2C_SERCOM->I2CM.SYNCBUSY.bit.SYSOP);
 
 	return i2c_timer;
 }
@@ -334,28 +357,28 @@ int i2c_master_adc_cmd(uint8_t cmd)
 void i2c_master_adc_cmd_reg(uint8_t cmd, uint8_t reg)
 {
 	/* Acknowledge section is set as ACK signal by writing 0 in ACKACT bit */
-	SERCOM3->I2CM.CTRLB.reg &= ~SERCOM_I2CM_CTRLB_ACKACT;
-	while(SERCOM3->I2CM.SYNCBUSY.bit.SYSOP);
+	I2C_SERCOM->I2CM.CTRLB.reg &= ~SERCOM_I2CM_CTRLB_ACKACT;
+	while(I2C_SERCOM->I2CM.SYNCBUSY.bit.SYSOP);
 	/* slave address with Write(0) */
-	SERCOM3->I2CM.ADDR.reg = (ADC122C04_ADDRESS << 1) | 0;
+	I2C_SERCOM->I2CM.ADDR.reg = (ADC122C04_ADDRESS << 1) | 0;
 
 	i2c_timer = 100;
-	while ((!SERCOM3->I2CM.INTFLAG.bit.MB) && (i2c_timer > 0)) { i2c_timer--; };
+	while ((!I2C_SERCOM->I2CM.INTFLAG.bit.MB) && (i2c_timer > 0)) { i2c_timer--; };
 
-	SERCOM3->I2CM.DATA.reg = cmd;
-	while(SERCOM3->I2CM.SYNCBUSY.bit.SYSOP);
-
-	i2c_timer = 100;
-	while ((!SERCOM3->I2CM.INTFLAG.bit.MB) && (i2c_timer > 0)) { i2c_timer--; };
-
-	SERCOM3->I2CM.DATA.reg = reg;
-	while(SERCOM3->I2CM.SYNCBUSY.bit.SYSOP);
+	I2C_SERCOM->I2CM.DATA.reg = cmd;
+	while(I2C_SERCOM->I2CM.SYNCBUSY.bit.SYSOP);
 
 	i2c_timer = 100;
-	while ((!SERCOM3->I2CM.INTFLAG.bit.MB) && (i2c_timer > 0)) { i2c_timer--; };
+	while ((!I2C_SERCOM->I2CM.INTFLAG.bit.MB) && (i2c_timer > 0)) { i2c_timer--; };
 
-	SERCOM3->I2CM.CTRLB.bit.CMD = 0x3;
-	while(SERCOM3->I2CM.SYNCBUSY.bit.SYSOP);
+	I2C_SERCOM->I2CM.DATA.reg = reg;
+	while(I2C_SERCOM->I2CM.SYNCBUSY.bit.SYSOP);
+
+	i2c_timer = 100;
+	while ((!I2C_SERCOM->I2CM.INTFLAG.bit.MB) && (i2c_timer > 0)) { i2c_timer--; };
+
+	I2C_SERCOM->I2CM.CTRLB.bit.CMD = 0x3;
+	while(I2C_SERCOM->I2CM.SYNCBUSY.bit.SYSOP);
 }
 
 void i2c_master_adc_rdata(uint8_t len, uint8_t buf[])
@@ -363,30 +386,30 @@ void i2c_master_adc_rdata(uint8_t len, uint8_t buf[])
 	uint8_t i;
 
 	/* Acknowledge section is set as ACK signal by writing 0 in ACKACT bit */
-	SERCOM3->I2CM.CTRLB.reg &= ~SERCOM_I2CM_CTRLB_ACKACT;
-	while(SERCOM3->I2CM.SYNCBUSY.bit.SYSOP);
+	I2C_SERCOM->I2CM.CTRLB.reg &= ~SERCOM_I2CM_CTRLB_ACKACT;
+	while(I2C_SERCOM->I2CM.SYNCBUSY.bit.SYSOP);
 	/* slave address with Write(0) */
-	SERCOM3->I2CM.ADDR.reg = (ADC122C04_ADDRESS << 1) | 0;
+	I2C_SERCOM->I2CM.ADDR.reg = (ADC122C04_ADDRESS << 1) | 0;
 
 	i2c_timer = 100;
-	while ((!SERCOM3->I2CM.INTFLAG.bit.MB) && (i2c_timer > 0)) { i2c_timer--; };
+	while ((!I2C_SERCOM->I2CM.INTFLAG.bit.MB) && (i2c_timer > 0)) { i2c_timer--; };
 
-	SERCOM3->I2CM.DATA.reg = ADS122C04_RDATA_CMD;
-	while(SERCOM3->I2CM.SYNCBUSY.bit.SYSOP);
+	I2C_SERCOM->I2CM.DATA.reg = ADS122C04_RDATA_CMD;
+	while(I2C_SERCOM->I2CM.SYNCBUSY.bit.SYSOP);
 
 	i2c_timer = 100;
-	while ((!SERCOM3->I2CM.INTFLAG.bit.MB) && (i2c_timer > 0)) { i2c_timer--; };
+	while ((!I2C_SERCOM->I2CM.INTFLAG.bit.MB) && (i2c_timer > 0)) { i2c_timer--; };
 
 	/* slave address with Read(1) */
-	SERCOM3->I2CM.ADDR.reg = (ADC122C04_ADDRESS << 1) | 1;
+	I2C_SERCOM->I2CM.ADDR.reg = (ADC122C04_ADDRESS << 1) | 1;
 
 	i = 0;
 	while (len > 0)
 	{
 		i2c_timer = 100;
-		while ((!SERCOM3->I2CM.INTFLAG.bit.SB) && (i2c_timer > 0)) { i2c_timer--; };
+		while ((!I2C_SERCOM->I2CM.INTFLAG.bit.SB) && (i2c_timer > 0)) { i2c_timer--; };
 
-		buf[i] = SERCOM3->I2CM.DATA.reg;
+		buf[i] = I2C_SERCOM->I2CM.DATA.reg;
 
 		i++;
 		len--;
@@ -394,13 +417,13 @@ void i2c_master_adc_rdata(uint8_t len, uint8_t buf[])
 		if (len == 0)
 		{
 			/* Acknowledge section is set as NACK signal by writing 1 in ACKACT bit */
-			SERCOM3->I2CM.CTRLB.reg |= SERCOM_I2CM_CTRLB_ACKACT;
-			while(SERCOM3->I2CM.SYNCBUSY.bit.SYSOP);
+			I2C_SERCOM->I2CM.CTRLB.reg |= SERCOM_I2CM_CTRLB_ACKACT;
+			while(I2C_SERCOM->I2CM.SYNCBUSY.bit.SYSOP);
 		}
 	}
 
-	SERCOM3->I2CM.CTRLB.bit.CMD = 0x3;
-	while(SERCOM3->I2CM.SYNCBUSY.bit.SYSOP);
+	I2C_SERCOM->I2CM.CTRLB.bit.CMD = 0x3;
+	while(I2C_SERCOM->I2CM.SYNCBUSY.bit.SYSOP);
 }
 
 
@@ -466,7 +489,9 @@ void TC5_Handler (void)
 			// missed a tick or ADC did not sample
 			if (adc_read_state != WAIT_TICK)
 			{
+#ifdef ADAFRUIT_FEATHER_M0
 				digitalWrite(MISSED_SAMPLE_PIN, 0);
+#endif
 
 				missed_sample = true;
 				missed_state = adc_read_state;
@@ -520,7 +545,9 @@ void TC5_Handler (void)
 			if (adc_read_state == WAIT_PWR_TICK)
 			{
 				digitalWrite(ADC_PWR_PIN, 1);
+#ifdef ADAFRUIT_FEATHER_M0
 				digitalWrite(SAMPLE_PIN, 1);
+#endif
 			}
 		}
 		TC5->COUNT16.INTFLAG.bit.MC0 = 1; //Writing a 1 to INTFLAG.bit.MC0 clears the interrupt so that it will run again
@@ -530,7 +557,9 @@ void TC5_Handler (void)
 	{
 		if (adc_read_state == WAIT_PWR_TICK)
 		{
+#ifdef ADAFRUIT_FEATHER_M0
 			digitalWrite(SAMPLE_PIN, 0);
+#endif
 			adc_read_state = WAIT_ADC;
 
 			// i2c_master_adc_cmd(ADS122C04_RESET_CMD); // reset resets the sample count, reset only at startup
@@ -610,28 +639,28 @@ void i2c_master_init()
 {
 	/* By setting the SPEED bit field as 0x01, I2C Master runs at SM or FM,
 	   By setting the SDAHOLD bit field as 0x0, SDA hold time disabled,
-	   SERCOM3 is configured as an I2C Master by writing the MODE bitfield as 0x5 */
+	   I2C_SERCOM is configured as an I2C Master by writing the MODE bitfield as 0x5 */
 
-	SERCOM3->I2CM.CTRLA.reg = SERCOM_I2CM_CTRLA_SPEED (0) |
+	I2C_SERCOM->I2CM.CTRLA.reg = SERCOM_I2CM_CTRLA_SPEED (0) |
 			SERCOM_I2CM_CTRLA_SDAHOLD(0x0) |
 			SERCOM_I2CM_CTRLA_MODE_I2C_MASTER;
 
 	/* smart mode enabled by setting the bit SMEN as 1 */
-	SERCOM3->I2CM.CTRLB.reg = SERCOM_I2CM_CTRLB_SMEN;
+	I2C_SERCOM->I2CM.CTRLB.reg = SERCOM_I2CM_CTRLB_SMEN;
 	/* synchronization busy */
-	while(SERCOM3->I2CM.SYNCBUSY.bit.SYSOP);
+	while(I2C_SERCOM->I2CM.SYNCBUSY.bit.SYSOP);
 	/* BAUDLOW is non-zero, and baud register is loaded */
-	SERCOM3->I2CM.BAUD.reg = SERCOM_I2CM_BAUD_BAUD(5) | SERCOM_I2CM_BAUD_BAUDLOW(0);
+	I2C_SERCOM->I2CM.BAUD.reg = SERCOM_I2CM_BAUD_BAUD(5) | SERCOM_I2CM_BAUD_BAUDLOW(0);
 	/* synchronization busy */
-	while(SERCOM3->I2CM.SYNCBUSY.bit.SYSOP);
-	/* SERCOM3 peripheral enabled by setting the ENABLE bit as 1*/
-	SERCOM3->I2CM.CTRLA.reg |= SERCOM_I2CM_CTRLA_ENABLE;
+	while(I2C_SERCOM->I2CM.SYNCBUSY.bit.SYSOP);
+	/* I2C_SERCOM peripheral enabled by setting the ENABLE bit as 1*/
+	I2C_SERCOM->I2CM.CTRLA.reg |= SERCOM_I2CM_CTRLA_ENABLE;
 	/* SERCOM Enable synchronization busy */
-	while((SERCOM3->I2CM.SYNCBUSY.reg & SERCOM_I2CM_SYNCBUSY_ENABLE));
+	while((I2C_SERCOM->I2CM.SYNCBUSY.reg & SERCOM_I2CM_SYNCBUSY_ENABLE));
 	/* bus state is forced into idle state */
-	SERCOM3->I2CM.STATUS.bit.BUSSTATE = 0x1;
+	I2C_SERCOM->I2CM.STATUS.bit.BUSSTATE = 0x1;
 	/* synchronization busy */
-	while(SERCOM3->I2CM.SYNCBUSY.bit.SYSOP);
+	while(I2C_SERCOM->I2CM.SYNCBUSY.bit.SYSOP);
 }
 
 uint8_t tx_buf[8];
@@ -759,13 +788,21 @@ void setup()
 	PM->AHBMASK.bit.USB_ = 0; // disable USB clock
 	USB->DEVICE.CTRLA.reg &= ~(USB_CTRLA_RUNSTDBY | USB_CTRLA_ENABLE); // disable USB
 
+#ifdef ARDUINO_QTPY_M0
+    PM->APBCMASK.reg |= PM_APBCMASK_SERCOM1; // Switch on the I2C_SERCOM (I2C) clock
+
+    // enable I2C_SERCOM sys clock
+    GCLK->CLKCTRL.reg = (uint32_t)((GCLK_CLKCTRL_CLKEN | GCLK_CLKCTRL_GEN_GCLK0 | (SERCOM1_GCLK_ID_CORE << GCLK_CLKCTRL_ID_Pos)));
+#endif
+#ifdef ARDUINO_FEATHER_M0
 	/* implement IIC here, not using Wire library, as library is interrupt driven, and we use an interrupt to read/write I2C,
 	 * improves sample timing jitter.
 	 */
-    PM->APBCMASK.reg |= PM_APBCMASK_SERCOM3; // Switch on the SERCOM3 (I2C) clock
+    PM->APBCMASK.reg |= PM_APBCMASK_SERCOM3; // Switch on the I2C_SERCOM (I2C) clock
 
-    // enable SERCOM3 sys clock
+    // enable I2C_SERCOM sys clock
     GCLK->CLKCTRL.reg = (uint32_t)((GCLK_CLKCTRL_CLKEN | GCLK_CLKCTRL_GEN_GCLK0 | (SERCOM3_GCLK_ID_CORE << GCLK_CLKCTRL_ID_Pos)));
+#endif
     while (GCLK->STATUS.bit.SYNCBUSY);
 
     pinPeripheral(SCL, PIO_SERCOM);
@@ -796,20 +833,22 @@ void setup()
 	pinMode(ADC_INT, INPUT_PULLUP);
 
 	pinMode(SD_CS_PIN, OUTPUT);
+#ifdef ADAFRUIT_FEATHER_M0
 	pinMode(PIN_WRITE_LED, OUTPUT);
 	pinMode(SAMPLE_PIN, OUTPUT);
 	pinMode(SLEEP_PIN, OUTPUT);
-	pinMode(ADC_PWR_PIN, OUTPUT);
 	pinMode(MISSED_SAMPLE_PIN, OUTPUT);
 
 	pinMode(LED_RED_PIN, OUTPUT);
 	pinMode(LED_GREEN_PIN, OUTPUT);
-
-	digitalWrite(MISSED_SAMPLE_PIN, 1);
-	digitalWrite(ADC_PWR_PIN, 1); // start powered up
-
 	digitalWrite(LED_RED_PIN, 0);
 	digitalWrite(LED_GREEN_PIN, 0);
+
+	digitalWrite(MISSED_SAMPLE_PIN, 1);
+#endif
+
+	pinMode(ADC_PWR_PIN, OUTPUT);
+	digitalWrite(ADC_PWR_PIN, 1); // start powered up
 
 	SerialDEBUG.print(F("SystemClock "));
 	SerialDEBUG.println(SystemCoreClock);
@@ -962,6 +1001,9 @@ void setup()
 	{
 		run_sample = false;
 	}
+
+	//ZeroRegOptions opts = { SerialDEBUG, false };
+	//printZeroRegs(opts);
 
 }
 
@@ -1545,15 +1587,32 @@ int cmd_set(char *line)
 
 int cmd_text(char *line)
 {
-	if (line)
+	char_80 txt;
+	char *p = (char *)&txt;
+	char_80 *p_80 = (char_80 *)&txt;
+	bool update = false;
+
+	while (line != NULL)
 	{
-		char_80 *p;
-		p = (char_80 *)line;
-		deployment_text.write(*p);
+		SerialDEBUG.println(line);
+		update = true;
+
+		strcpy(p, line);
+		p += strlen(line);
+
+		line = strtok(NULL, " ");
+		if (line)
+		{
+			strcpy(p, " ");
+			p += 1;
+		}
+	}
+	if (update)
+	{
+		deployment_text.write(*p_80);
 	}
 
 	SerialDEBUG.print("deployment text : ");
-	char_80 txt;
 	deployment_text.read(&txt);
 	SerialDEBUG.println(txt.txt);
 
@@ -1589,7 +1648,34 @@ int cmd_reg1(char *line)
 		adc_reg1.write(debug);
 	}
 
-	SerialDEBUG.println(adc_reg1.read());
+	new_reg1 = adc_reg1.read();
+	SerialDEBUG.println(new_reg1);
+
+	SerialDEBUG.print(" Mode : ");
+	SerialDEBUG.println(new_reg1 & ADS122C04_OP_MODE_TURBO ? "Turbo" : "Normal");
+	SerialDEBUG.print(" CM : ");
+	SerialDEBUG.println(new_reg1 & ADS122C04_CONVERSION_MODE_CONTINUOUS ? "Continuous" : "Single");
+	SerialDEBUG.print(" VREF : ");
+	switch ((new_reg1 & 0x6) >> 1)
+	{
+		case 0:
+			SerialDEBUG.println("Internal");
+			break;
+		case 1:
+			SerialDEBUG.println("External");
+			break;
+		case 2:
+			SerialDEBUG.println("AVdd/AVss");
+			break;
+	}
+	// TODO: update for turbo mode rates (x2)
+	const int data_rate[] = {20, 45, 90, 175, 330, 600, 1000};
+	SerialDEBUG.print(" data rate : ");
+	SerialDEBUG.print(data_rate[(new_reg1 >> 5)]);
+	SerialDEBUG.println(" SPS");
+
+	SerialDEBUG.print(" Temp Sensor : ");
+	SerialDEBUG.println(new_reg1 & ADS122C04_TEMP_SENSOR_ON);
 
 	return 0;
 }
@@ -1807,8 +1893,9 @@ void loop()
 
 		SerialDEBUG.print(" missed sample state ");
 		SerialDEBUG.println(missed_state);
-
+#ifdef ADAFRUIT_FEATHER_M0
 		digitalWrite(MISSED_SAMPLE_PIN, 1);
+#endif
 
 		missed_sample = false;
 	}
@@ -1945,7 +2032,9 @@ void loop()
 		// write data to file
 		if (binFile.isOpen())
 		{
+#ifdef ADAFRUIT_FEATHER_M0
 			digitalWrite(PIN_WRITE_LED, 1);
+#endif
 
 			if (size_2 != binFile.write(&data_buffer[sample_write_sd], size_2))
 			{
@@ -1973,7 +2062,9 @@ void loop()
 		pinMode(SD_CS_PIN, OUTPUT);
 		digitalWrite(SD_CS_PIN, 1);
 
+#ifdef ADAFRUIT_FEATHER_M0
 		digitalWrite(PIN_WRITE_LED, 0);
+#endif
 
 	}
 	if (adc_convert)
@@ -2041,7 +2132,9 @@ void loop()
 			while (sd.card()->isBusy()) {} // make sure the SD card has been flushed
 		}
 
+#ifdef ADAFRUIT_FEATHER_M0
 		digitalWrite(SLEEP_PIN, 1);
+#endif
 
 		SysTick->CTRL &= ~SysTick_CTRL_TICKINT_Msk; // disable the sys tick, otherwise we get worken by it
 
@@ -2058,7 +2151,9 @@ void loop()
 //			LowPower.idle(IDLE_2);
 //		}
 
+#ifdef ADAFRUIT_FEATHER_M0
 		digitalWrite(SLEEP_PIN, 0);
+#endif
 	}
 
 }

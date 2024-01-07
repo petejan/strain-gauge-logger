@@ -396,7 +396,7 @@ void SystemInit( void )
     {
       /* Wait for synchronization */
     }
-#if F_CPU == 48000000
+#if F_CPU == 48000000L
     /* ----------------------------------------------------------------------------------------------
      * 3) Put Generic Clock Generator 1 as source for Generic Clock Multiplexer 0 (DFLL48M reference)
      */
@@ -523,7 +523,6 @@ void SystemInit( void )
       /* Wait for synchronization */
     }
 #endif
-
     /* ----------------------------------------------------------------------------------------------
      * 6) Modify PRESCaler value of OSC8M to have 8MHz
      */

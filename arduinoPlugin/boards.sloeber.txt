@@ -52,7 +52,7 @@ adafruit_feather_m0.build.board=SAMD_ZERO
 adafruit_feather_m0.build.core=arduino 
 adafruit_feather_m0.build.extra_flags=-D__SAMD21G18A__ -DADAFRUIT_FEATHER_M0 -DARDUINO_SAMD_ZERO -DARM_MATH_CM0PLUS ${build.usb_flags} 
 adafruit_feather_m0.build.ldscript=linker_scripts/gcc/flash_with_bootloader.ld 
-adafruit_feather_m0.build.openocdscript=openocd_scripts/feather_m0.cfg 
+adafruit_feather_m0.build.openocdscript=scripts/openocd/daplink_samd21.cfg 
 adafruit_feather_m0.build.variant=feather_m0 
 adafruit_feather_m0.build.variant_system_lib= 
 adafruit_feather_m0.build.vid=0x239A 
@@ -60,7 +60,7 @@ adafruit_feather_m0.build.pid=0x800B
 adafruit_feather_m0.bootloader.tool=openocd 
 adafruit_feather_m0.bootloader.file=featherM0/bootloader-feather_m0-v2.0.0-adafruit.5.bin 
  
-# Menu 
+# Menu: Optimization 
 adafruit_feather_m0.menu.opt.small=Small (-Os) (standard) 
 adafruit_feather_m0.menu.opt.small.build.flags.optimize=-Os 
 adafruit_feather_m0.menu.opt.fast=Fast (-O2) 
@@ -71,17 +71,23 @@ adafruit_feather_m0.menu.opt.fastest=Fastest (-Ofast)
 adafruit_feather_m0.menu.opt.fastest.build.flags.optimize=-Ofast 
 adafruit_feather_m0.menu.opt.dragons=Here be dragons (-Ofast -funroll-loops) 
 adafruit_feather_m0.menu.opt.dragons.build.flags.optimize=-Ofast -funroll-loops 
+ 
+# Menu: USB Stack 
 adafruit_feather_m0.menu.usbstack.arduino=Arduino 
 adafruit_feather_m0.menu.usbstack.tinyusb=TinyUSB 
 adafruit_feather_m0.menu.usbstack.tinyusb.build.flags.usbstack=-DUSE_TINYUSB 
+ 
+# Menu: Debug 
 adafruit_feather_m0.menu.debug.off=Off 
 adafruit_feather_m0.menu.debug.on=On 
 adafruit_feather_m0.menu.debug.on.build.flags.debug=-g 
-adafruit_feather_m0.menu.speed.48=48 MHz (standard)
-adafruit_feather_m0.menu.speed.48.build.f_cpu=48000000L
-adafruit_feather_m0.menu.speed.8=8 MHz (no PLL)
-adafruit_feather_m0.menu.speed.8.build.f_cpu=8000000L
 
+# Menu: Speed
+adafruit_feather_m0.menu.speed.48=48 MHz (standard)
+adafruit_feather_m0.menu.speed.8=8 MHz
+adafruit_feather_m0.menu.speed.48.build.f_cpu=48000000L
+adafruit_feather_m0.menu.speed.8.build.f_cpu=8000000L
+ 
  
 # ----------------------------------- 
 # Adafruit Feather M0 Express (SAMD21) 
@@ -112,7 +118,7 @@ adafruit_feather_m0_express.build.board=SAMD_FEATHER_M0_EXPRESS
 adafruit_feather_m0_express.build.core=arduino 
 adafruit_feather_m0_express.build.extra_flags=-D__SAMD21G18A__ -DARDUINO_SAMD_FEATHER_M0 -DADAFRUIT_FEATHER_M0_EXPRESS -DARDUINO_SAMD_ZERO -DARM_MATH_CM0PLUS ${build.usb_flags} 
 adafruit_feather_m0_express.build.ldscript=linker_scripts/gcc/flash_with_bootloader.ld 
-adafruit_feather_m0_express.build.openocdscript=openocd_scripts/feather_m0_express.cfg 
+adafruit_feather_m0_express.build.openocdscript=scripts/openocd/daplink_samd21.cfg 
 adafruit_feather_m0_express.build.variant=feather_m0_express 
 adafruit_feather_m0_express.build.variant_system_lib= 
 adafruit_feather_m0_express.build.vid=0x239A 
@@ -120,7 +126,7 @@ adafruit_feather_m0_express.build.pid=0x801B
 adafruit_feather_m0_express.bootloader.tool=openocd 
 adafruit_feather_m0_express.bootloader.file=featherM0/bootloader-feather_m0-v2.0.0-adafruit.5.bin 
  
-# Menu 
+# Menu: Optimization 
 adafruit_feather_m0_express.menu.opt.small=Small (-Os) (standard) 
 adafruit_feather_m0_express.menu.opt.small.build.flags.optimize=-Os 
 adafruit_feather_m0_express.menu.opt.fast=Fast (-O2) 
@@ -131,9 +137,13 @@ adafruit_feather_m0_express.menu.opt.fastest=Fastest (-Ofast)
 adafruit_feather_m0_express.menu.opt.fastest.build.flags.optimize=-Ofast 
 adafruit_feather_m0_express.menu.opt.dragons=Here be dragons (-Ofast -funroll-loops) 
 adafruit_feather_m0_express.menu.opt.dragons.build.flags.optimize=-Ofast -funroll-loops 
+ 
+# Menu: USB Stack 
 adafruit_feather_m0_express.menu.usbstack.arduino=Arduino 
 adafruit_feather_m0_express.menu.usbstack.tinyusb=TinyUSB 
 adafruit_feather_m0_express.menu.usbstack.tinyusb.build.flags.usbstack=-DUSE_TINYUSB 
+ 
+# Menu: Debug 
 adafruit_feather_m0_express.menu.debug.off=Off 
 adafruit_feather_m0_express.menu.debug.on=On 
 adafruit_feather_m0_express.menu.debug.on.build.flags.debug=-g 
@@ -168,7 +178,7 @@ adafruit_metro_m0.build.board=SAMD_ZERO
 adafruit_metro_m0.build.core=arduino 
 adafruit_metro_m0.build.extra_flags=-D__SAMD21G18A__ -DADAFRUIT_METRO_M0_EXPRESS -DARDUINO_SAMD_ZERO -DARM_MATH_CM0PLUS ${build.usb_flags} 
 adafruit_metro_m0.build.ldscript=linker_scripts/gcc/flash_with_bootloader.ld 
-adafruit_metro_m0.build.openocdscript=openocd_scripts/metro_m0.cfg 
+adafruit_metro_m0.build.openocdscript=scripts/openocd/daplink_samd21.cfg 
 adafruit_metro_m0.build.variant=metro_m0 
 adafruit_metro_m0.build.variant_system_lib= 
 adafruit_metro_m0.build.vid=0x239A 
@@ -176,7 +186,7 @@ adafruit_metro_m0.build.pid=0x8013
 adafruit_metro_m0.bootloader.tool=openocd 
 adafruit_metro_m0.bootloader.file=metroM0/bootloader-metro_m0-v2.0.0-adafruit.5.bin 
  
-# Menu 
+# Menu: Optimization 
 adafruit_metro_m0.menu.opt.small=Small (-Os) (standard) 
 adafruit_metro_m0.menu.opt.small.build.flags.optimize=-Os 
 adafruit_metro_m0.menu.opt.fast=Fast (-O2) 
@@ -187,9 +197,13 @@ adafruit_metro_m0.menu.opt.fastest=Fastest (-Ofast)
 adafruit_metro_m0.menu.opt.fastest.build.flags.optimize=-Ofast 
 adafruit_metro_m0.menu.opt.dragons=Here be dragons (-Ofast -funroll-loops) 
 adafruit_metro_m0.menu.opt.dragons.build.flags.optimize=-Ofast -funroll-loops 
+ 
+# Menu: USB Stack 
 adafruit_metro_m0.menu.usbstack.arduino=Arduino 
 adafruit_metro_m0.menu.usbstack.tinyusb=TinyUSB 
 adafruit_metro_m0.menu.usbstack.tinyusb.build.flags.usbstack=-DUSE_TINYUSB 
+ 
+# Menu: Debug 
 adafruit_metro_m0.menu.debug.off=Off 
 adafruit_metro_m0.menu.debug.on=On 
 adafruit_metro_m0.menu.debug.on.build.flags.debug=-g 
@@ -224,7 +238,7 @@ adafruit_circuitplayground_m0.build.board=SAMD_CIRCUITPLAYGROUND_EXPRESS
 adafruit_circuitplayground_m0.build.core=arduino 
 adafruit_circuitplayground_m0.build.extra_flags=-D__SAMD21G18A__ -DCRYSTALLESS -DADAFRUIT_CIRCUITPLAYGROUND_M0 -DARDUINO_SAMD_ZERO -DARM_MATH_CM0PLUS ${build.usb_flags} 
 adafruit_circuitplayground_m0.build.ldscript=linker_scripts/gcc/flash_with_bootloader.ld 
-adafruit_circuitplayground_m0.build.openocdscript=openocd_scripts/circuitplay.cfg 
+adafruit_circuitplayground_m0.build.openocdscript=scripts/openocd/daplink_samd21.cfg 
 adafruit_circuitplayground_m0.build.variant=circuitplay 
 adafruit_circuitplayground_m0.build.variant_system_lib= 
 adafruit_circuitplayground_m0.build.vid=0x239A 
@@ -232,7 +246,7 @@ adafruit_circuitplayground_m0.build.pid=0x8018
 adafruit_circuitplayground_m0.bootloader.tool=openocd 
 adafruit_circuitplayground_m0.bootloader.file=circuitplayM0/bootloader-circuitplay_m0-v2.0.0-adafruit.5.bin 
  
-# Menu 
+# Menu: Optimization 
 adafruit_circuitplayground_m0.menu.opt.small=Small (-Os) (standard) 
 adafruit_circuitplayground_m0.menu.opt.small.build.flags.optimize=-Os 
 adafruit_circuitplayground_m0.menu.opt.fast=Fast (-O2) 
@@ -243,9 +257,13 @@ adafruit_circuitplayground_m0.menu.opt.fastest=Fastest (-Ofast)
 adafruit_circuitplayground_m0.menu.opt.fastest.build.flags.optimize=-Ofast 
 adafruit_circuitplayground_m0.menu.opt.dragons=Here be dragons (-Ofast -funroll-loops) 
 adafruit_circuitplayground_m0.menu.opt.dragons.build.flags.optimize=-Ofast -funroll-loops 
+ 
+# Menu: USB Stack 
 adafruit_circuitplayground_m0.menu.usbstack.arduino=Arduino 
 adafruit_circuitplayground_m0.menu.usbstack.tinyusb=TinyUSB 
 adafruit_circuitplayground_m0.menu.usbstack.tinyusb.build.flags.usbstack=-DUSE_TINYUSB 
+ 
+# Menu: Debug 
 adafruit_circuitplayground_m0.menu.debug.off=Off 
 adafruit_circuitplayground_m0.menu.debug.on=On 
 adafruit_circuitplayground_m0.menu.debug.on.build.flags.debug=-g 
@@ -280,7 +298,7 @@ adafruit_gemma_m0.build.board=GEMMA_M0
 adafruit_gemma_m0.build.core=arduino 
 adafruit_gemma_m0.build.extra_flags=-D__SAMD21E18A__ -DCRYSTALLESS -DADAFRUIT_GEMMA_M0 -DARM_MATH_CM0PLUS ${build.usb_flags} 
 adafruit_gemma_m0.build.ldscript=linker_scripts/gcc/flash_with_bootloader.ld 
-adafruit_gemma_m0.build.openocdscript=openocd_scripts/gemma_m0.cfg 
+adafruit_gemma_m0.build.openocdscript=scripts/openocd/daplink_samd21.cfg 
 adafruit_gemma_m0.build.variant=gemma_m0 
 adafruit_gemma_m0.build.variant_system_lib= 
 adafruit_gemma_m0.build.vid=0x239A 
@@ -288,7 +306,7 @@ adafruit_gemma_m0.build.pid=0x801C
 adafruit_gemma_m0.bootloader.tool=openocd 
 adafruit_gemma_m0.bootloader.file=gemmaM0/bootloader-gemma_m0-v2.0.0-adafruit.5.bin 
  
-# Menu 
+# Menu: Optimization 
 adafruit_gemma_m0.menu.opt.small=Small (-Os) (standard) 
 adafruit_gemma_m0.menu.opt.small.build.flags.optimize=-Os 
 adafruit_gemma_m0.menu.opt.fast=Fast (-O2) 
@@ -299,9 +317,13 @@ adafruit_gemma_m0.menu.opt.fastest=Fastest (-Ofast)
 adafruit_gemma_m0.menu.opt.fastest.build.flags.optimize=-Ofast 
 adafruit_gemma_m0.menu.opt.dragons=Here be dragons (-Ofast -funroll-loops) 
 adafruit_gemma_m0.menu.opt.dragons.build.flags.optimize=-Ofast -funroll-loops 
+ 
+# Menu: USB Stack 
 adafruit_gemma_m0.menu.usbstack.arduino=Arduino 
 adafruit_gemma_m0.menu.usbstack.tinyusb=TinyUSB 
 adafruit_gemma_m0.menu.usbstack.tinyusb.build.flags.usbstack=-DUSE_TINYUSB 
+ 
+# Menu: Debug 
 adafruit_gemma_m0.menu.debug.off=Off 
 adafruit_gemma_m0.menu.debug.on=On 
 adafruit_gemma_m0.menu.debug.on.build.flags.debug=-g 
@@ -336,7 +358,7 @@ adafruit_trinket_m0.build.board=TRINKET_M0
 adafruit_trinket_m0.build.core=arduino 
 adafruit_trinket_m0.build.extra_flags=-D__SAMD21E18A__ -DCRYSTALLESS -DADAFRUIT_TRINKET_M0 -DARM_MATH_CM0PLUS ${build.usb_flags} 
 adafruit_trinket_m0.build.ldscript=linker_scripts/gcc/flash_with_bootloader.ld 
-adafruit_trinket_m0.build.openocdscript=openocd_scripts/trinket_m0.cfg 
+adafruit_trinket_m0.build.openocdscript=scripts/openocd/daplink_samd21.cfg 
 adafruit_trinket_m0.build.variant=trinket_m0 
 adafruit_trinket_m0.build.variant_system_lib= 
 adafruit_trinket_m0.build.vid=0x239A 
@@ -344,7 +366,7 @@ adafruit_trinket_m0.build.pid=0x801E
 adafruit_trinket_m0.bootloader.tool=openocd 
 adafruit_trinket_m0.bootloader.file=trinketm0/bootloader-trinket_m0-v2.0.0-adafruit.5.bin 
  
-# Menu 
+# Menu: Optimization 
 adafruit_trinket_m0.menu.opt.small=Small (-Os) (standard) 
 adafruit_trinket_m0.menu.opt.small.build.flags.optimize=-Os 
 adafruit_trinket_m0.menu.opt.fast=Fast (-O2) 
@@ -355,9 +377,13 @@ adafruit_trinket_m0.menu.opt.fastest=Fastest (-Ofast)
 adafruit_trinket_m0.menu.opt.fastest.build.flags.optimize=-Ofast 
 adafruit_trinket_m0.menu.opt.dragons=Here be dragons (-Ofast -funroll-loops) 
 adafruit_trinket_m0.menu.opt.dragons.build.flags.optimize=-Ofast -funroll-loops 
+ 
+# Menu: USB Stack 
 adafruit_trinket_m0.menu.usbstack.arduino=Arduino 
 adafruit_trinket_m0.menu.usbstack.tinyusb=TinyUSB 
 adafruit_trinket_m0.menu.usbstack.tinyusb.build.flags.usbstack=-DUSE_TINYUSB 
+ 
+# Menu: Debug 
 adafruit_trinket_m0.menu.debug.off=Off 
 adafruit_trinket_m0.menu.debug.on=On 
 adafruit_trinket_m0.menu.debug.on.build.flags.debug=-g 
@@ -393,7 +419,7 @@ adafruit_qtpy_m0.build.board=QTPY_M0
 adafruit_qtpy_m0.build.core=arduino 
 adafruit_qtpy_m0.build.extra_flags=-D__SAMD21E18A__ -DCRYSTALLESS -DADAFRUIT_QTPY_M0 -DARM_MATH_CM0PLUS ${build.usb_flags} 
 adafruit_qtpy_m0.build.ldscript=linker_scripts/gcc/flash_with_bootloader.ld 
-adafruit_qtpy_m0.build.openocdscript=openocd_scripts/qtpy_m0.cfg 
+adafruit_qtpy_m0.build.openocdscript=scripts/openocd/daplink_samd21.cfg 
 adafruit_qtpy_m0.build.variant=qtpy_m0 
 adafruit_qtpy_m0.build.variant_system_lib= 
 adafruit_qtpy_m0.build.vid=0x239A 
@@ -401,7 +427,7 @@ adafruit_qtpy_m0.build.pid=0x80CB
 adafruit_qtpy_m0.bootloader.tool=openocd 
 adafruit_qtpy_m0.bootloader.file=qtpyM0/bootloader-qtpy_m0.bin 
  
-# Menu 
+# Menu: Optimization 
 adafruit_qtpy_m0.menu.opt.small=Small (-Os) (standard) 
 adafruit_qtpy_m0.menu.opt.small.build.flags.optimize=-Os 
 adafruit_qtpy_m0.menu.opt.fast=Fast (-O2) 
@@ -412,18 +438,23 @@ adafruit_qtpy_m0.menu.opt.fastest=Fastest (-Ofast)
 adafruit_qtpy_m0.menu.opt.fastest.build.flags.optimize=-Ofast 
 adafruit_qtpy_m0.menu.opt.dragons=Here be dragons (-Ofast -funroll-loops) 
 adafruit_qtpy_m0.menu.opt.dragons.build.flags.optimize=-Ofast -funroll-loops 
+ 
+# Menu: USB Stack 
 adafruit_qtpy_m0.menu.usbstack.arduino=Arduino 
 adafruit_qtpy_m0.menu.usbstack.tinyusb=TinyUSB 
 adafruit_qtpy_m0.menu.usbstack.tinyusb.build.flags.usbstack=-DUSE_TINYUSB 
+ 
+# Menu: Debug 
 adafruit_qtpy_m0.menu.debug.off=Off 
 adafruit_qtpy_m0.menu.debug.on=On 
 adafruit_qtpy_m0.menu.debug.on.build.flags.debug=-g 
-adafruit_qtpy_m0.menu.speed.48=48 MHz (standard)
+
+# Menu: Speed
+adafruit_qtpt_m0.menu.speed.48=48 MHz (standard)
+adafruit_qtpy_m0.menu.speed.8=8 MHz (no pll)
 adafruit_qtpy_m0.menu.speed.48.build.f_cpu=48000000L
-adafruit_qtpy_m0.menu.speed.8=8 MHz (no PLL)
 adafruit_qtpy_m0.menu.speed.8.build.f_cpu=8000000L
-
-
+ 
  
 # ----------------------------------- 
 # Adafruit NeoPixel Trinkey M0 (SAMD21) 
@@ -456,7 +487,7 @@ adafruit_neotrinkey_m0.build.board=NEOTRINKEY_M0
 adafruit_neotrinkey_m0.build.core=arduino 
 adafruit_neotrinkey_m0.build.extra_flags=-D__SAMD21E18A__ -DCRYSTALLESS -DADAFRUIT_NEOTRINKEY_M0 -DARDUINO_SAMD_ZERO -DARM_MATH_CM0PLUS ${build.usb_flags} 
 adafruit_neotrinkey_m0.build.ldscript=linker_scripts/gcc/flash_with_bootloader.ld 
-adafruit_neotrinkey_m0.build.openocdscript=openocd_scripts/neotrinkey_m0.cfg 
+adafruit_neotrinkey_m0.build.openocdscript=scripts/openocd/daplink_samd21.cfg 
 adafruit_neotrinkey_m0.build.variant=neotrinkey_m0 
 adafruit_neotrinkey_m0.build.variant_system_lib= 
 adafruit_neotrinkey_m0.build.vid=0x239A 
@@ -464,7 +495,7 @@ adafruit_neotrinkey_m0.build.pid=0x80EF
 adafruit_neotrinkey_m0.bootloader.tool=openocd 
 adafruit_neotrinkey_m0.bootloader.file=neotrinkey_m0/bootloader-neotrinkey_m0.bin 
  
-# Menu 
+# Menu: Optimization 
 adafruit_neotrinkey_m0.menu.opt.small=Small (-Os) (standard) 
 adafruit_neotrinkey_m0.menu.opt.small.build.flags.optimize=-Os 
 adafruit_neotrinkey_m0.menu.opt.fast=Fast (-O2) 
@@ -475,9 +506,13 @@ adafruit_neotrinkey_m0.menu.opt.fastest=Fastest (-Ofast)
 adafruit_neotrinkey_m0.menu.opt.fastest.build.flags.optimize=-Ofast 
 adafruit_neotrinkey_m0.menu.opt.dragons=Here be dragons (-Ofast -funroll-loops) 
 adafruit_neotrinkey_m0.menu.opt.dragons.build.flags.optimize=-Ofast -funroll-loops 
+ 
+# Menu: USB Stack 
 adafruit_neotrinkey_m0.menu.usbstack.arduino=Arduino 
 adafruit_neotrinkey_m0.menu.usbstack.tinyusb=TinyUSB 
 adafruit_neotrinkey_m0.menu.usbstack.tinyusb.build.flags.usbstack=-DUSE_TINYUSB 
+ 
+# Menu: Debug 
 adafruit_neotrinkey_m0.menu.debug.off=Off 
 adafruit_neotrinkey_m0.menu.debug.on=On 
 adafruit_neotrinkey_m0.menu.debug.on.build.flags.debug=-g 
@@ -514,7 +549,7 @@ adafruit_rotarytrinkey_m0.build.board=ROTARYTRINKEY_M0
 adafruit_rotarytrinkey_m0.build.core=arduino 
 adafruit_rotarytrinkey_m0.build.extra_flags=-D__SAMD21E18A__ -DCRYSTALLESS -DADAFRUIT_ROTARYTRINKEY_M0 -DARDUINO_SAMD_ZERO -DARM_MATH_CM0PLUS ${build.usb_flags} 
 adafruit_rotarytrinkey_m0.build.ldscript=linker_scripts/gcc/flash_with_bootloader.ld 
-adafruit_rotarytrinkey_m0.build.openocdscript=openocd_scripts/rotarytrinkey_m0.cfg 
+adafruit_rotarytrinkey_m0.build.openocdscript=scripts/openocd/daplink_samd21.cfg 
 adafruit_rotarytrinkey_m0.build.variant=rotarytrinkey_m0 
 adafruit_rotarytrinkey_m0.build.variant_system_lib= 
 adafruit_rotarytrinkey_m0.build.vid=0x239A 
@@ -522,7 +557,7 @@ adafruit_rotarytrinkey_m0.build.pid=0x80FB
 adafruit_rotarytrinkey_m0.bootloader.tool=openocd 
 adafruit_rotarytrinkey_m0.bootloader.file=rotarytrinkey_m0/bootloader-rotarytrinkey_m0.bin 
  
-# Menu 
+# Menu: Optimization 
 adafruit_rotarytrinkey_m0.menu.opt.small=Small (-Os) (standard) 
 adafruit_rotarytrinkey_m0.menu.opt.small.build.flags.optimize=-Os 
 adafruit_rotarytrinkey_m0.menu.opt.fast=Fast (-O2) 
@@ -533,9 +568,13 @@ adafruit_rotarytrinkey_m0.menu.opt.fastest=Fastest (-Ofast)
 adafruit_rotarytrinkey_m0.menu.opt.fastest.build.flags.optimize=-Ofast 
 adafruit_rotarytrinkey_m0.menu.opt.dragons=Here be dragons (-Ofast -funroll-loops) 
 adafruit_rotarytrinkey_m0.menu.opt.dragons.build.flags.optimize=-Ofast -funroll-loops 
+ 
+# Menu: USB Stack 
 adafruit_rotarytrinkey_m0.menu.usbstack.arduino=Arduino 
 adafruit_rotarytrinkey_m0.menu.usbstack.tinyusb=TinyUSB 
 adafruit_rotarytrinkey_m0.menu.usbstack.tinyusb.build.flags.usbstack=-DUSE_TINYUSB 
+ 
+# Menu: Debug 
 adafruit_rotarytrinkey_m0.menu.debug.off=Off 
 adafruit_rotarytrinkey_m0.menu.debug.on=On 
 adafruit_rotarytrinkey_m0.menu.debug.on.build.flags.debug=-g 
@@ -572,7 +611,7 @@ adafruit_neokeytrinkey_m0.build.board=NEOKEYTRINKEY_M0
 adafruit_neokeytrinkey_m0.build.core=arduino 
 adafruit_neokeytrinkey_m0.build.extra_flags=-D__SAMD21E18A__ -DCRYSTALLESS -DADAFRUIT_NEOKEYTRINKEY_M0 -DARDUINO_SAMD_ZERO -DARM_MATH_CM0PLUS ${build.usb_flags} 
 adafruit_neokeytrinkey_m0.build.ldscript=linker_scripts/gcc/flash_with_bootloader.ld 
-adafruit_neokeytrinkey_m0.build.openocdscript=openocd_scripts/neokeytrinkey_m0.cfg 
+adafruit_neokeytrinkey_m0.build.openocdscript=scripts/openocd/daplink_samd21.cfg 
 adafruit_neokeytrinkey_m0.build.variant=neokeytrinkey_m0 
 adafruit_neokeytrinkey_m0.build.variant_system_lib= 
 adafruit_neokeytrinkey_m0.build.vid=0x239A 
@@ -580,7 +619,7 @@ adafruit_neokeytrinkey_m0.build.pid=0x80FF
 adafruit_neokeytrinkey_m0.bootloader.tool=openocd 
 adafruit_neokeytrinkey_m0.bootloader.file=neokeytrinkey_m0/bootloader-neokeytrinkey_m0.bin 
  
-# Menu 
+# Menu: Optimization 
 adafruit_neokeytrinkey_m0.menu.opt.small=Small (-Os) (standard) 
 adafruit_neokeytrinkey_m0.menu.opt.small.build.flags.optimize=-Os 
 adafruit_neokeytrinkey_m0.menu.opt.fast=Fast (-O2) 
@@ -591,9 +630,13 @@ adafruit_neokeytrinkey_m0.menu.opt.fastest=Fastest (-Ofast)
 adafruit_neokeytrinkey_m0.menu.opt.fastest.build.flags.optimize=-Ofast 
 adafruit_neokeytrinkey_m0.menu.opt.dragons=Here be dragons (-Ofast -funroll-loops) 
 adafruit_neokeytrinkey_m0.menu.opt.dragons.build.flags.optimize=-Ofast -funroll-loops 
+ 
+# Menu: USB Stack 
 adafruit_neokeytrinkey_m0.menu.usbstack.arduino=Arduino 
 adafruit_neokeytrinkey_m0.menu.usbstack.tinyusb=TinyUSB 
 adafruit_neokeytrinkey_m0.menu.usbstack.tinyusb.build.flags.usbstack=-DUSE_TINYUSB 
+ 
+# Menu: Debug 
 adafruit_neokeytrinkey_m0.menu.debug.off=Off 
 adafruit_neokeytrinkey_m0.menu.debug.on=On 
 adafruit_neokeytrinkey_m0.menu.debug.on.build.flags.debug=-g 
@@ -630,7 +673,7 @@ adafruit_slidetrinkey_m0.build.board=SLIDETRINKEY_M0
 adafruit_slidetrinkey_m0.build.core=arduino 
 adafruit_slidetrinkey_m0.build.extra_flags=-D__SAMD21E18A__ -DCRYSTALLESS -DADAFRUIT_SLIDETRINKEY_M0 -DARDUINO_SAMD_ZERO -DARM_MATH_CM0PLUS ${build.usb_flags} 
 adafruit_slidetrinkey_m0.build.ldscript=linker_scripts/gcc/flash_with_bootloader.ld 
-adafruit_slidetrinkey_m0.build.openocdscript=openocd_scripts/slidetrinkey_m0.cfg 
+adafruit_slidetrinkey_m0.build.openocdscript=scripts/openocd/daplink_samd21.cfg 
 adafruit_slidetrinkey_m0.build.variant=slidetrinkey_m0 
 adafruit_slidetrinkey_m0.build.variant_system_lib= 
 adafruit_slidetrinkey_m0.build.vid=0x239A 
@@ -638,7 +681,7 @@ adafruit_slidetrinkey_m0.build.pid=0x8101
 adafruit_slidetrinkey_m0.bootloader.tool=openocd 
 adafruit_slidetrinkey_m0.bootloader.file=slidetrinkey_m0/bootloader-slidetrinkey_m0.bin 
  
-# Menu 
+# Menu: Optimization 
 adafruit_slidetrinkey_m0.menu.opt.small=Small (-Os) (standard) 
 adafruit_slidetrinkey_m0.menu.opt.small.build.flags.optimize=-Os 
 adafruit_slidetrinkey_m0.menu.opt.fast=Fast (-O2) 
@@ -649,9 +692,13 @@ adafruit_slidetrinkey_m0.menu.opt.fastest=Fastest (-Ofast)
 adafruit_slidetrinkey_m0.menu.opt.fastest.build.flags.optimize=-Ofast 
 adafruit_slidetrinkey_m0.menu.opt.dragons=Here be dragons (-Ofast -funroll-loops) 
 adafruit_slidetrinkey_m0.menu.opt.dragons.build.flags.optimize=-Ofast -funroll-loops 
+ 
+# Menu: USB Stack 
 adafruit_slidetrinkey_m0.menu.usbstack.arduino=Arduino 
 adafruit_slidetrinkey_m0.menu.usbstack.tinyusb=TinyUSB 
 adafruit_slidetrinkey_m0.menu.usbstack.tinyusb.build.flags.usbstack=-DUSE_TINYUSB 
+ 
+# Menu: Debug 
 adafruit_slidetrinkey_m0.menu.debug.off=Off 
 adafruit_slidetrinkey_m0.menu.debug.on=On 
 adafruit_slidetrinkey_m0.menu.debug.on.build.flags.debug=-g 
@@ -688,7 +735,7 @@ adafruit_proxlighttrinkey_m0.build.board=PROXLIGHTTRINKEY_M0
 adafruit_proxlighttrinkey_m0.build.core=arduino 
 adafruit_proxlighttrinkey_m0.build.extra_flags=-D__SAMD21E18A__ -DCRYSTALLESS -DADAFRUIT_PROXLIGHTTRINKEY_M0 -DARDUINO_SAMD_ZERO -DARM_MATH_CM0PLUS ${build.usb_flags} 
 adafruit_proxlighttrinkey_m0.build.ldscript=linker_scripts/gcc/flash_with_bootloader.ld 
-adafruit_proxlighttrinkey_m0.build.openocdscript=openocd_scripts/proxlighttrinkey_m0.cfg 
+adafruit_proxlighttrinkey_m0.build.openocdscript=scripts/openocd/daplink_samd21.cfg 
 adafruit_proxlighttrinkey_m0.build.variant=proxlighttrinkey_m0 
 adafruit_proxlighttrinkey_m0.build.variant_system_lib= 
 adafruit_proxlighttrinkey_m0.build.vid=0x239A 
@@ -696,7 +743,7 @@ adafruit_proxlighttrinkey_m0.build.pid=0x8103
 adafruit_proxlighttrinkey_m0.bootloader.tool=openocd 
 adafruit_proxlighttrinkey_m0.bootloader.file=proxlighttrinkey_m0/bootloader-proxlighttrinkey_m0.bin 
  
-# Menu 
+# Menu: Optimization 
 adafruit_proxlighttrinkey_m0.menu.opt.small=Small (-Os) (standard) 
 adafruit_proxlighttrinkey_m0.menu.opt.small.build.flags.optimize=-Os 
 adafruit_proxlighttrinkey_m0.menu.opt.fast=Fast (-O2) 
@@ -707,9 +754,13 @@ adafruit_proxlighttrinkey_m0.menu.opt.fastest=Fastest (-Ofast)
 adafruit_proxlighttrinkey_m0.menu.opt.fastest.build.flags.optimize=-Ofast 
 adafruit_proxlighttrinkey_m0.menu.opt.dragons=Here be dragons (-Ofast -funroll-loops) 
 adafruit_proxlighttrinkey_m0.menu.opt.dragons.build.flags.optimize=-Ofast -funroll-loops 
+ 
+# Menu: USB Stack 
 adafruit_proxlighttrinkey_m0.menu.usbstack.arduino=Arduino 
 adafruit_proxlighttrinkey_m0.menu.usbstack.tinyusb=TinyUSB 
 adafruit_proxlighttrinkey_m0.menu.usbstack.tinyusb.build.flags.usbstack=-DUSE_TINYUSB 
+ 
+# Menu: Debug 
 adafruit_proxlighttrinkey_m0.menu.debug.off=Off 
 adafruit_proxlighttrinkey_m0.menu.debug.on=On 
 adafruit_proxlighttrinkey_m0.menu.debug.on.build.flags.debug=-g 
@@ -746,7 +797,7 @@ adafruit_itsybitsy_m0.build.board=ITSYBITSY_M0
 adafruit_itsybitsy_m0.build.core=arduino 
 adafruit_itsybitsy_m0.build.extra_flags=-D__SAMD21G18A__ -DCRYSTALLESS -DADAFRUIT_ITSYBITSY_M0 -DARM_MATH_CM0PLUS ${build.usb_flags} 
 adafruit_itsybitsy_m0.build.ldscript=linker_scripts/gcc/flash_with_bootloader.ld 
-adafruit_itsybitsy_m0.build.openocdscript=openocd_scripts/itsybitsy_m0.cfg 
+adafruit_itsybitsy_m0.build.openocdscript=scripts/openocd/daplink_samd21.cfg 
 adafruit_itsybitsy_m0.build.variant=itsybitsy_m0 
 adafruit_itsybitsy_m0.build.variant_system_lib= 
 adafruit_itsybitsy_m0.build.vid=0x239A 
@@ -754,7 +805,7 @@ adafruit_itsybitsy_m0.build.pid=0x800F
 adafruit_itsybitsy_m0.bootloader.tool=openocd 
 adafruit_itsybitsy_m0.bootloader.file=itsybitsyM0/bootloader-itsybitsy_m0-v2.0.0-adafruit.5.bin 
  
-# Menu 
+# Menu: Optimization 
 adafruit_itsybitsy_m0.menu.opt.small=Small (-Os) (standard) 
 adafruit_itsybitsy_m0.menu.opt.small.build.flags.optimize=-Os 
 adafruit_itsybitsy_m0.menu.opt.fast=Fast (-O2) 
@@ -765,9 +816,13 @@ adafruit_itsybitsy_m0.menu.opt.fastest=Fastest (-Ofast)
 adafruit_itsybitsy_m0.menu.opt.fastest.build.flags.optimize=-Ofast 
 adafruit_itsybitsy_m0.menu.opt.dragons=Here be dragons (-Ofast -funroll-loops) 
 adafruit_itsybitsy_m0.menu.opt.dragons.build.flags.optimize=-Ofast -funroll-loops 
+ 
+# Menu: USB Stack 
 adafruit_itsybitsy_m0.menu.usbstack.arduino=Arduino 
 adafruit_itsybitsy_m0.menu.usbstack.tinyusb=TinyUSB 
 adafruit_itsybitsy_m0.menu.usbstack.tinyusb.build.flags.usbstack=-DUSE_TINYUSB 
+ 
+# Menu: Debug 
 adafruit_itsybitsy_m0.menu.debug.off=Off 
 adafruit_itsybitsy_m0.menu.debug.on=On 
 adafruit_itsybitsy_m0.menu.debug.on.build.flags.debug=-g 
@@ -804,7 +859,7 @@ adafruit_pirkey.build.board=PIRKEY
 adafruit_pirkey.build.core=arduino 
 adafruit_pirkey.build.extra_flags=-D__SAMD21E18A__ -DCRYSTALLESS -DADAFRUIT_PIRKEY -DARDUINO_SAMD_ZERO -DARM_MATH_CM0PLUS ${build.usb_flags} 
 adafruit_pirkey.build.ldscript=linker_scripts/gcc/flash_with_bootloader.ld 
-adafruit_pirkey.build.openocdscript=openocd_scripts/pirkey.cfg 
+adafruit_pirkey.build.openocdscript=scripts/openocd/daplink_samd21.cfg 
 adafruit_pirkey.build.variant=pirkey 
 adafruit_pirkey.build.variant_system_lib= 
 adafruit_pirkey.build.vid=0x239A 
@@ -812,7 +867,7 @@ adafruit_pirkey.build.pid=0x8027
 adafruit_pirkey.bootloader.tool=openocd 
 adafruit_pirkey.bootloader.file=pirkey/bootloader-pirkey-v2.0.0-adafruit.5.bin 
  
-# Menu 
+# Menu: Optimization 
 adafruit_pirkey.menu.opt.small=Small (-Os) (standard) 
 adafruit_pirkey.menu.opt.small.build.flags.optimize=-Os 
 adafruit_pirkey.menu.opt.fast=Fast (-O2) 
@@ -823,9 +878,13 @@ adafruit_pirkey.menu.opt.fastest=Fastest (-Ofast)
 adafruit_pirkey.menu.opt.fastest.build.flags.optimize=-Ofast 
 adafruit_pirkey.menu.opt.dragons=Here be dragons (-Ofast -funroll-loops) 
 adafruit_pirkey.menu.opt.dragons.build.flags.optimize=-Ofast -funroll-loops 
+ 
+# Menu: USB Stack 
 adafruit_pirkey.menu.usbstack.arduino=Arduino 
 adafruit_pirkey.menu.usbstack.tinyusb=TinyUSB 
 adafruit_pirkey.menu.usbstack.tinyusb.build.flags.usbstack=-DUSE_TINYUSB 
+ 
+# Menu: Debug 
 adafruit_pirkey.menu.debug.off=Off 
 adafruit_pirkey.menu.debug.on=On 
 adafruit_pirkey.menu.debug.on.build.flags.debug=-g 
@@ -862,7 +921,7 @@ adafruit_hallowing.build.board=SAMD_HALLOWING
 adafruit_hallowing.build.core=arduino 
 adafruit_hallowing.build.extra_flags=-D__SAMD21G18A__ -DCRYSTALLESS -DARDUINO_SAMD_HALLOWING_M0 -DADAFRUIT_HALLOWING -DARDUINO_SAMD_ZERO -DARM_MATH_CM0PLUS ${build.usb_flags} 
 adafruit_hallowing.build.ldscript=linker_scripts/gcc/flash_with_bootloader.ld 
-adafruit_hallowing.build.openocdscript=openocd_scripts/hallowing_m0_express.cfg 
+adafruit_hallowing.build.openocdscript=scripts/openocd/daplink_samd21.cfg 
 adafruit_hallowing.build.variant=hallowing_m0_express 
 adafruit_hallowing.build.variant_system_lib= 
 adafruit_hallowing.build.vid=0x239A 
@@ -870,7 +929,7 @@ adafruit_hallowing.build.pid=0xDEAD
 adafruit_hallowing.bootloader.tool=openocd 
 adafruit_hallowing.bootloader.file=hallowingM0/bootloader-hallowing_m0-v2.0.0-adafruit.0-21-g887cc30.bin 
  
-# Menu 
+# Menu: Optimization 
 adafruit_hallowing.menu.opt.small=Small (-Os) (standard) 
 adafruit_hallowing.menu.opt.small.build.flags.optimize=-Os 
 adafruit_hallowing.menu.opt.fast=Fast (-O2) 
@@ -881,9 +940,13 @@ adafruit_hallowing.menu.opt.fastest=Fastest (-Ofast)
 adafruit_hallowing.menu.opt.fastest.build.flags.optimize=-Ofast 
 adafruit_hallowing.menu.opt.dragons=Here be dragons (-Ofast -funroll-loops) 
 adafruit_hallowing.menu.opt.dragons.build.flags.optimize=-Ofast -funroll-loops 
+ 
+# Menu: USB Stack 
 adafruit_hallowing.menu.usbstack.arduino=Arduino 
 adafruit_hallowing.menu.usbstack.tinyusb=TinyUSB 
 adafruit_hallowing.menu.usbstack.tinyusb.build.flags.usbstack=-DUSE_TINYUSB 
+ 
+# Menu: Debug 
 adafruit_hallowing.menu.debug.off=Off 
 adafruit_hallowing.menu.debug.on=On 
 adafruit_hallowing.menu.debug.on.build.flags.debug=-g 
@@ -920,7 +983,7 @@ adafruit_crickit_m0.build.board=CRICKIT_M0
 adafruit_crickit_m0.build.core=arduino 
 adafruit_crickit_m0.build.extra_flags=-D__SAMD21G18A__ -DCRYSTALLESS -DADAFRUIT_CRICKIT_M0 -DARDUINO_SAMD_ZERO -DARM_MATH_CM0PLUS ${build.usb_flags} 
 adafruit_crickit_m0.build.ldscript=linker_scripts/gcc/flash_with_bootloader.ld 
-adafruit_crickit_m0.build.openocdscript=openocd_scripts/crickit_m0.cfg 
+adafruit_crickit_m0.build.openocdscript=scripts/openocd/daplink_samd21.cfg 
 adafruit_crickit_m0.build.variant=crickit_m0 
 adafruit_crickit_m0.build.variant_system_lib= 
 adafruit_crickit_m0.build.vid=0x239A 
@@ -928,7 +991,7 @@ adafruit_crickit_m0.build.pid=0x802D
 adafruit_crickit_m0.bootloader.tool=openocd 
 adafruit_crickit_m0.bootloader.file=crickit/samd21_sam_ba.bin 
  
-# Menu 
+# Menu: Optimization 
 adafruit_crickit_m0.menu.opt.small=Small (-Os) (standard) 
 adafruit_crickit_m0.menu.opt.small.build.flags.optimize=-Os 
 adafruit_crickit_m0.menu.opt.fast=Fast (-O2) 
@@ -939,9 +1002,13 @@ adafruit_crickit_m0.menu.opt.fastest=Fastest (-Ofast)
 adafruit_crickit_m0.menu.opt.fastest.build.flags.optimize=-Ofast 
 adafruit_crickit_m0.menu.opt.dragons=Here be dragons (-Ofast -funroll-loops) 
 adafruit_crickit_m0.menu.opt.dragons.build.flags.optimize=-Ofast -funroll-loops 
+ 
+# Menu: USB Stack 
 adafruit_crickit_m0.menu.usbstack.arduino=Arduino 
 adafruit_crickit_m0.menu.usbstack.tinyusb=TinyUSB 
 adafruit_crickit_m0.menu.usbstack.tinyusb.build.flags.usbstack=-DUSE_TINYUSB 
+ 
+# Menu: Debug 
 adafruit_crickit_m0.menu.debug.off=Off 
 adafruit_crickit_m0.menu.debug.on=On 
 adafruit_crickit_m0.menu.debug.on.build.flags.debug=-g 
@@ -976,9 +1043,9 @@ adafruit_blm_badge.build.usb_product=BLM Badge
 adafruit_blm_badge.build.usb_manufacturer=Adafruit 
 adafruit_blm_badge.build.board=BLM_BADGE_M0 
 adafruit_blm_badge.build.core=arduino 
-adafruit_blm_badge.build.extra_flags=-D__SAMD21E18A__ -DCRYSTALLESS  -DADAFRUIT_BLM_BADGE -DARDUINO_SAMD_ZERO -DARM_MATH_CM0PLUS ${build.usb_flags} 
+adafruit_blm_badge.build.extra_flags=-D__SAMD21E18A__ -DCRYSTALLESS -DADAFRUIT_BLM_BADGE -DARDUINO_SAMD_ZERO -DARM_MATH_CM0PLUS ${build.usb_flags} 
 adafruit_blm_badge.build.ldscript=linker_scripts/gcc/flash_with_bootloader.ld 
-adafruit_blm_badge.build.openocdscript=openocd_scripts/blm_badge.cfg 
+adafruit_blm_badge.build.openocdscript=scripts/openocd/daplink_samd21.cfg 
 adafruit_blm_badge.build.variant=blm_badge 
 adafruit_blm_badge.build.variant_system_lib= 
 adafruit_blm_badge.build.vid=0x239A 
@@ -986,7 +1053,7 @@ adafruit_blm_badge.build.pid=0x80BF
 adafruit_blm_badge.bootloader.tool=openocd 
 adafruit_blm_badge.bootloader.file=blmbadge/bootloader-blm_badge.bin 
  
-# Menu 
+# Menu: Optimization 
 adafruit_blm_badge.menu.opt.small=Small (-Os) (standard) 
 adafruit_blm_badge.menu.opt.small.build.flags.optimize=-Os 
 adafruit_blm_badge.menu.opt.fast=Fast (-O2) 
@@ -997,9 +1064,13 @@ adafruit_blm_badge.menu.opt.fastest=Fastest (-Ofast)
 adafruit_blm_badge.menu.opt.fastest.build.flags.optimize=-Ofast 
 adafruit_blm_badge.menu.opt.dragons=Here be dragons (-Ofast -funroll-loops) 
 adafruit_blm_badge.menu.opt.dragons.build.flags.optimize=-Ofast -funroll-loops 
+ 
+# Menu: USB Stack 
 adafruit_blm_badge.menu.usbstack.arduino=Arduino 
 adafruit_blm_badge.menu.usbstack.tinyusb=TinyUSB 
 adafruit_blm_badge.menu.usbstack.tinyusb.build.flags.usbstack=-DUSE_TINYUSB 
+ 
+# Menu: Debug 
 adafruit_blm_badge.menu.debug.off=Off 
 adafruit_blm_badge.menu.debug.on=On 
 adafruit_blm_badge.menu.debug.on.build.flags.debug=-g 
@@ -1038,7 +1109,7 @@ adafruit_metro_m4.build.board=METRO_M4
 adafruit_metro_m4.build.core=arduino 
 adafruit_metro_m4.build.extra_flags=-D__SAMD51J19A__ -DADAFRUIT_METRO_M4_EXPRESS -D__SAMD51__ -D__FPU_PRESENT -DARM_MATH_CM4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 ${build.usb_flags} 
 adafruit_metro_m4.build.ldscript=linker_scripts/gcc/flash_with_bootloader.ld 
-adafruit_metro_m4.build.openocdscript=openocd_scripts/metro_m4.cfg 
+adafruit_metro_m4.build.openocdscript=scripts/openocd/daplink_samd51.cfg 
 adafruit_metro_m4.build.variant=metro_m4 
 adafruit_metro_m4.build.variant_system_lib= 
 adafruit_metro_m4.build.vid=0x239A 
@@ -1047,11 +1118,13 @@ adafruit_metro_m4.bootloader.tool=openocd
 adafruit_metro_m4.bootloader.file=metroM4/bootloader-metro_m4-v2.0.0-adafruit.5.bin 
 adafruit_metro_m4.compiler.arm.cmsis.ldflags="-L${runtime.tools.CMSIS-5.4.0.path}/CMSIS/Lib/GCC/" "-L${build.variant.path}" -larm_cortexM4lf_math -mfloat-abi=hard -mfpu=fpv4-sp-d16 
  
-# Menu 
+# Menu: Cache 
 adafruit_metro_m4.menu.cache.on=Enabled 
 adafruit_metro_m4.menu.cache.on.build.cache_flags=-DENABLE_CACHE 
 adafruit_metro_m4.menu.cache.off=Disabled 
 adafruit_metro_m4.menu.cache.off.build.cache_flags= 
+ 
+# Menu: Speed 
 adafruit_metro_m4.menu.speed.120=120 MHz (standard) 
 adafruit_metro_m4.menu.speed.120.build.f_cpu=120000000L 
 adafruit_metro_m4.menu.speed.150=150 MHz (overclock) 
@@ -1060,6 +1133,8 @@ adafruit_metro_m4.menu.speed.180=180 MHz (overclock)
 adafruit_metro_m4.menu.speed.180.build.f_cpu=180000000L 
 adafruit_metro_m4.menu.speed.200=200 MHz (overclock) 
 adafruit_metro_m4.menu.speed.200.build.f_cpu=200000000L 
+ 
+# Menu: Optimization 
 adafruit_metro_m4.menu.opt.small=Small (-Os) (standard) 
 adafruit_metro_m4.menu.opt.small.build.flags.optimize=-Os 
 adafruit_metro_m4.menu.opt.fast=Fast (-O2) 
@@ -1070,13 +1145,19 @@ adafruit_metro_m4.menu.opt.fastest=Fastest (-Ofast)
 adafruit_metro_m4.menu.opt.fastest.build.flags.optimize=-Ofast 
 adafruit_metro_m4.menu.opt.dragons=Here be dragons (-Ofast -funroll-loops) 
 adafruit_metro_m4.menu.opt.dragons.build.flags.optimize=-Ofast -funroll-loops 
+ 
+# Menu: QSPI Speed 
 adafruit_metro_m4.menu.maxqspi.50=50 MHz (standard) 
 adafruit_metro_m4.menu.maxqspi.50.build.flags.maxqspi=-DVARIANT_QSPI_BAUD_DEFAULT=50000000 
 adafruit_metro_m4.menu.maxqspi.fcpu=CPU Speed / 2 
 adafruit_metro_m4.menu.maxqspi.fcpu.build.flags.maxqspi=-DVARIANT_QSPI_BAUD_DEFAULT=(${build.f_cpu}) 
+ 
+# Menu: USB Stack 
 adafruit_metro_m4.menu.usbstack.arduino=Arduino 
 adafruit_metro_m4.menu.usbstack.tinyusb=TinyUSB 
 adafruit_metro_m4.menu.usbstack.tinyusb.build.flags.usbstack=-DUSE_TINYUSB 
+ 
+# Menu: Debug 
 adafruit_metro_m4.menu.debug.off=Off 
 adafruit_metro_m4.menu.debug.on=On 
 adafruit_metro_m4.menu.debug.on.build.flags.debug=-g 
@@ -1113,7 +1194,7 @@ adafruit_grandcentral_m4.build.board=GRAND_CENTRAL_M4
 adafruit_grandcentral_m4.build.core=arduino 
 adafruit_grandcentral_m4.build.extra_flags=-D__SAMD51P20A__ -DADAFRUIT_GRAND_CENTRAL_M4 -D__SAMD51__ -D__FPU_PRESENT -DARM_MATH_CM4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 ${build.usb_flags} 
 adafruit_grandcentral_m4.build.ldscript=linker_scripts/gcc/flash_with_bootloader.ld 
-adafruit_grandcentral_m4.build.openocdscript=openocd_scripts/grand_central_m4.cfg 
+adafruit_grandcentral_m4.build.openocdscript=scripts/openocd/daplink_samd51.cfg 
 adafruit_grandcentral_m4.build.variant=grand_central_m4 
 adafruit_grandcentral_m4.build.variant_system_lib= 
 adafruit_grandcentral_m4.build.vid=0x239A 
@@ -1122,11 +1203,13 @@ adafruit_grandcentral_m4.bootloader.tool=openocd
 adafruit_grandcentral_m4.bootloader.file=grand_central_m4/bootloader-grandcentral_m4.bin 
 adafruit_grandcentral_m4.compiler.arm.cmsis.ldflags="-L${runtime.tools.CMSIS-5.4.0.path}/CMSIS/Lib/GCC/" "-L${build.variant.path}" -larm_cortexM4lf_math -mfloat-abi=hard -mfpu=fpv4-sp-d16 
  
-# Menu 
+# Menu: Cache 
 adafruit_grandcentral_m4.menu.cache.on=Enabled 
 adafruit_grandcentral_m4.menu.cache.on.build.cache_flags=-DENABLE_CACHE 
 adafruit_grandcentral_m4.menu.cache.off=Disabled 
 adafruit_grandcentral_m4.menu.cache.off.build.cache_flags= 
+ 
+# Menu: Speed 
 adafruit_grandcentral_m4.menu.speed.120=120 MHz (standard) 
 adafruit_grandcentral_m4.menu.speed.120.build.f_cpu=120000000L 
 adafruit_grandcentral_m4.menu.speed.150=150 MHz (overclock) 
@@ -1135,6 +1218,8 @@ adafruit_grandcentral_m4.menu.speed.180=180 MHz (overclock)
 adafruit_grandcentral_m4.menu.speed.180.build.f_cpu=180000000L 
 adafruit_grandcentral_m4.menu.speed.200=200 MHz (overclock) 
 adafruit_grandcentral_m4.menu.speed.200.build.f_cpu=200000000L 
+ 
+# Menu: Optimization 
 adafruit_grandcentral_m4.menu.opt.small=Small (-Os) (standard) 
 adafruit_grandcentral_m4.menu.opt.small.build.flags.optimize=-Os 
 adafruit_grandcentral_m4.menu.opt.fast=Fast (-O2) 
@@ -1145,13 +1230,19 @@ adafruit_grandcentral_m4.menu.opt.fastest=Fastest (-Ofast)
 adafruit_grandcentral_m4.menu.opt.fastest.build.flags.optimize=-Ofast 
 adafruit_grandcentral_m4.menu.opt.dragons=Here be dragons (-Ofast -funroll-loops) 
 adafruit_grandcentral_m4.menu.opt.dragons.build.flags.optimize=-Ofast -funroll-loops 
+ 
+# Menu: QSPI Speed 
 adafruit_grandcentral_m4.menu.maxqspi.50=50 MHz (standard) 
 adafruit_grandcentral_m4.menu.maxqspi.50.build.flags.maxqspi=-DVARIANT_QSPI_BAUD_DEFAULT=50000000 
 adafruit_grandcentral_m4.menu.maxqspi.fcpu=CPU Speed / 2 
 adafruit_grandcentral_m4.menu.maxqspi.fcpu.build.flags.maxqspi=-DVARIANT_QSPI_BAUD_DEFAULT=(${build.f_cpu}) 
+ 
+# Menu: USB Stack 
 adafruit_grandcentral_m4.menu.usbstack.arduino=Arduino 
 adafruit_grandcentral_m4.menu.usbstack.tinyusb=TinyUSB 
 adafruit_grandcentral_m4.menu.usbstack.tinyusb.build.flags.usbstack=-DUSE_TINYUSB 
+ 
+# Menu: Debug 
 adafruit_grandcentral_m4.menu.debug.off=Off 
 adafruit_grandcentral_m4.menu.debug.on=On 
 adafruit_grandcentral_m4.menu.debug.on.build.flags.debug=-g 
@@ -1186,7 +1277,7 @@ adafruit_itsybitsy_m4.build.board=ITSYBITSY_M4
 adafruit_itsybitsy_m4.build.core=arduino 
 adafruit_itsybitsy_m4.build.extra_flags=-D__SAMD51G19A__ -DCRYSTALLESS -DADAFRUIT_ITSYBITSY_M4_EXPRESS -D__SAMD51__ -D__FPU_PRESENT -DARM_MATH_CM4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 ${build.usb_flags} 
 adafruit_itsybitsy_m4.build.ldscript=linker_scripts/gcc/flash_with_bootloader.ld 
-adafruit_itsybitsy_m4.build.openocdscript=openocd_scripts/itsybitsy_m4.cfg 
+adafruit_itsybitsy_m4.build.openocdscript=scripts/openocd/daplink_samd51.cfg 
 adafruit_itsybitsy_m4.build.variant=itsybitsy_m4 
 adafruit_itsybitsy_m4.build.variant_system_lib= 
 adafruit_itsybitsy_m4.build.vid=0x239A 
@@ -1195,11 +1286,13 @@ adafruit_itsybitsy_m4.bootloader.tool=openocd
 adafruit_itsybitsy_m4.bootloader.file=itsybitsyM4/bootloader-itsybitsy_m4-v2.0.0-adafruit.5.bin 
 adafruit_itsybitsy_m4.compiler.arm.cmsis.ldflags="-L${runtime.tools.CMSIS-5.4.0.path}/CMSIS/Lib/GCC/" "-L${build.variant.path}" -larm_cortexM4lf_math -mfloat-abi=hard -mfpu=fpv4-sp-d16 
  
-# Menu 
+# Menu: Cache 
 adafruit_itsybitsy_m4.menu.cache.on=Enabled 
 adafruit_itsybitsy_m4.menu.cache.on.build.cache_flags=-DENABLE_CACHE 
 adafruit_itsybitsy_m4.menu.cache.off=Disabled 
 adafruit_itsybitsy_m4.menu.cache.off.build.cache_flags= 
+ 
+# Menu: Speed 
 adafruit_itsybitsy_m4.menu.speed.120=120 MHz (standard) 
 adafruit_itsybitsy_m4.menu.speed.120.build.f_cpu=120000000L 
 adafruit_itsybitsy_m4.menu.speed.150=150 MHz (overclock) 
@@ -1208,6 +1301,8 @@ adafruit_itsybitsy_m4.menu.speed.180=180 MHz (overclock)
 adafruit_itsybitsy_m4.menu.speed.180.build.f_cpu=180000000L 
 adafruit_itsybitsy_m4.menu.speed.200=200 MHz (overclock) 
 adafruit_itsybitsy_m4.menu.speed.200.build.f_cpu=200000000L 
+ 
+# Menu: Optimization 
 adafruit_itsybitsy_m4.menu.opt.small=Small (-Os) (standard) 
 adafruit_itsybitsy_m4.menu.opt.small.build.flags.optimize=-Os 
 adafruit_itsybitsy_m4.menu.opt.fast=Fast (-O2) 
@@ -1218,13 +1313,19 @@ adafruit_itsybitsy_m4.menu.opt.fastest=Fastest (-Ofast)
 adafruit_itsybitsy_m4.menu.opt.fastest.build.flags.optimize=-Ofast 
 adafruit_itsybitsy_m4.menu.opt.dragons=Here be dragons (-Ofast -funroll-loops) 
 adafruit_itsybitsy_m4.menu.opt.dragons.build.flags.optimize=-Ofast -funroll-loops 
+ 
+# Menu: QSPI Speed 
 adafruit_itsybitsy_m4.menu.maxqspi.50=50 MHz (standard) 
 adafruit_itsybitsy_m4.menu.maxqspi.50.build.flags.maxqspi=-DVARIANT_QSPI_BAUD_DEFAULT=50000000 
 adafruit_itsybitsy_m4.menu.maxqspi.fcpu=CPU Speed / 2 
 adafruit_itsybitsy_m4.menu.maxqspi.fcpu.build.flags.maxqspi=-DVARIANT_QSPI_BAUD_DEFAULT=(${build.f_cpu}) 
+ 
+# Menu: USB Stack 
 adafruit_itsybitsy_m4.menu.usbstack.arduino=Arduino 
 adafruit_itsybitsy_m4.menu.usbstack.tinyusb=TinyUSB 
 adafruit_itsybitsy_m4.menu.usbstack.tinyusb.build.flags.usbstack=-DUSE_TINYUSB 
+ 
+# Menu: Debug 
 adafruit_itsybitsy_m4.menu.debug.off=Off 
 adafruit_itsybitsy_m4.menu.debug.on=On 
 adafruit_itsybitsy_m4.menu.debug.on.build.flags.debug=-g 
@@ -1261,7 +1362,7 @@ adafruit_feather_m4.build.board=FEATHER_M4
 adafruit_feather_m4.build.core=arduino 
 adafruit_feather_m4.build.extra_flags=-D__SAMD51J19A__ -DADAFRUIT_FEATHER_M4_EXPRESS -D__SAMD51__ -D__FPU_PRESENT -DARM_MATH_CM4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 ${build.usb_flags} 
 adafruit_feather_m4.build.ldscript=linker_scripts/gcc/flash_with_bootloader.ld 
-adafruit_feather_m4.build.openocdscript=openocd_scripts/feather_m4.cfg 
+adafruit_feather_m4.build.openocdscript=scripts/openocd/daplink_samd51.cfg 
 adafruit_feather_m4.build.variant=feather_m4 
 adafruit_feather_m4.build.variant_system_lib= 
 adafruit_feather_m4.build.vid=0x239A 
@@ -1270,11 +1371,13 @@ adafruit_feather_m4.bootloader.tool=openocd
 adafruit_feather_m4.bootloader.file=featherM4/bootloader-feather_m4-v2.0.0-adafruit.5.bin 
 adafruit_feather_m4.compiler.arm.cmsis.ldflags="-L${runtime.tools.CMSIS-5.4.0.path}/CMSIS/Lib/GCC/" "-L${build.variant.path}" -larm_cortexM4lf_math -mfloat-abi=hard -mfpu=fpv4-sp-d16 
  
-# Menu 
+# Menu: Cache 
 adafruit_feather_m4.menu.cache.on=Enabled 
 adafruit_feather_m4.menu.cache.on.build.cache_flags=-DENABLE_CACHE 
 adafruit_feather_m4.menu.cache.off=Disabled 
 adafruit_feather_m4.menu.cache.off.build.cache_flags= 
+ 
+# Menu: Speed 
 adafruit_feather_m4.menu.speed.120=120 MHz (standard) 
 adafruit_feather_m4.menu.speed.120.build.f_cpu=120000000L 
 adafruit_feather_m4.menu.speed.150=150 MHz (overclock) 
@@ -1283,6 +1386,8 @@ adafruit_feather_m4.menu.speed.180=180 MHz (overclock)
 adafruit_feather_m4.menu.speed.180.build.f_cpu=180000000L 
 adafruit_feather_m4.menu.speed.200=200 MHz (overclock) 
 adafruit_feather_m4.menu.speed.200.build.f_cpu=200000000L 
+ 
+# Menu: Optimization 
 adafruit_feather_m4.menu.opt.small=Small (-Os) (standard) 
 adafruit_feather_m4.menu.opt.small.build.flags.optimize=-Os 
 adafruit_feather_m4.menu.opt.fast=Fast (-O2) 
@@ -1293,13 +1398,19 @@ adafruit_feather_m4.menu.opt.fastest=Fastest (-Ofast)
 adafruit_feather_m4.menu.opt.fastest.build.flags.optimize=-Ofast 
 adafruit_feather_m4.menu.opt.dragons=Here be dragons (-Ofast -funroll-loops) 
 adafruit_feather_m4.menu.opt.dragons.build.flags.optimize=-Ofast -funroll-loops 
+ 
+# Menu: QSPI Speed 
 adafruit_feather_m4.menu.maxqspi.50=50 MHz (standard) 
 adafruit_feather_m4.menu.maxqspi.50.build.flags.maxqspi=-DVARIANT_QSPI_BAUD_DEFAULT=50000000 
 adafruit_feather_m4.menu.maxqspi.fcpu=CPU Speed / 2 
 adafruit_feather_m4.menu.maxqspi.fcpu.build.flags.maxqspi=-DVARIANT_QSPI_BAUD_DEFAULT=(${build.f_cpu}) 
+ 
+# Menu: USB Stack 
 adafruit_feather_m4.menu.usbstack.arduino=Arduino 
 adafruit_feather_m4.menu.usbstack.tinyusb=TinyUSB 
 adafruit_feather_m4.menu.usbstack.tinyusb.build.flags.usbstack=-DUSE_TINYUSB 
+ 
+# Menu: Debug 
 adafruit_feather_m4.menu.debug.off=Off 
 adafruit_feather_m4.menu.debug.on=On 
 adafruit_feather_m4.menu.debug.on.build.flags.debug=-g 
@@ -1334,7 +1445,7 @@ adafruit_feather_m4_can.build.board=FEATHER_M4_CAN
 adafruit_feather_m4_can.build.core=arduino 
 adafruit_feather_m4_can.build.extra_flags=-D__SAME51J19A__ -DADAFRUIT_FEATHER_M4_EXPRESS -DADAFRUIT_FEATHER_M4_CAN -D__SAMD51__ -D__FPU_PRESENT -DARM_MATH_CM4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 ${build.usb_flags} 
 adafruit_feather_m4_can.build.ldscript=linker_scripts/gcc/flash_with_bootloader.ld 
-adafruit_feather_m4_can.build.openocdscript=openocd_scripts/feather_m4_can.cfg 
+adafruit_feather_m4_can.build.openocdscript=scripts/openocd/daplink_samd51.cfg 
 adafruit_feather_m4_can.build.variant=feather_m4_can 
 adafruit_feather_m4_can.build.variant_system_lib= 
 adafruit_feather_m4_can.build.vid=0x239A 
@@ -1343,11 +1454,13 @@ adafruit_feather_m4_can.bootloader.tool=openocd
 adafruit_feather_m4_can.bootloader.file=featherM4/bootloader-feather_m4_express-v2.0.0-adafruit.5.bin 
 adafruit_feather_m4_can.compiler.arm.cmsis.ldflags="-L${runtime.tools.CMSIS-5.4.0.path}/CMSIS/Lib/GCC/" "-L${build.variant.path}" -larm_cortexM4lf_math -mfloat-abi=hard -mfpu=fpv4-sp-d16 
  
-# Menu 
+# Menu: Cache 
 adafruit_feather_m4_can.menu.cache.on=Enabled 
 adafruit_feather_m4_can.menu.cache.on.build.cache_flags=-DENABLE_CACHE 
 adafruit_feather_m4_can.menu.cache.off=Disabled 
 adafruit_feather_m4_can.menu.cache.off.build.cache_flags= 
+ 
+# Menu: Speed 
 adafruit_feather_m4_can.menu.speed.120=120 MHz (standard) 
 adafruit_feather_m4_can.menu.speed.120.build.f_cpu=120000000L 
 adafruit_feather_m4_can.menu.speed.150=150 MHz (overclock) 
@@ -1356,6 +1469,8 @@ adafruit_feather_m4_can.menu.speed.180=180 MHz (overclock)
 adafruit_feather_m4_can.menu.speed.180.build.f_cpu=180000000L 
 adafruit_feather_m4_can.menu.speed.200=200 MHz (overclock) 
 adafruit_feather_m4_can.menu.speed.200.build.f_cpu=200000000L 
+ 
+# Menu: Optimization 
 adafruit_feather_m4_can.menu.opt.small=Small (-Os) (standard) 
 adafruit_feather_m4_can.menu.opt.small.build.flags.optimize=-Os 
 adafruit_feather_m4_can.menu.opt.fast=Fast (-O2) 
@@ -1366,13 +1481,19 @@ adafruit_feather_m4_can.menu.opt.fastest=Fastest (-Ofast)
 adafruit_feather_m4_can.menu.opt.fastest.build.flags.optimize=-Ofast 
 adafruit_feather_m4_can.menu.opt.dragons=Here be dragons (-Ofast -funroll-loops) 
 adafruit_feather_m4_can.menu.opt.dragons.build.flags.optimize=-Ofast -funroll-loops 
+ 
+# Menu: QSPI Speed 
 adafruit_feather_m4_can.menu.maxqspi.50=50 MHz (standard) 
 adafruit_feather_m4_can.menu.maxqspi.50.build.flags.maxqspi=-DVARIANT_QSPI_BAUD_DEFAULT=50000000 
 adafruit_feather_m4_can.menu.maxqspi.fcpu=CPU Speed / 2 
 adafruit_feather_m4_can.menu.maxqspi.fcpu.build.flags.maxqspi=-DVARIANT_QSPI_BAUD_DEFAULT=(${build.f_cpu}) 
+ 
+# Menu: USB Stack 
 adafruit_feather_m4_can.menu.usbstack.arduino=Arduino 
 adafruit_feather_m4_can.menu.usbstack.tinyusb=TinyUSB 
 adafruit_feather_m4_can.menu.usbstack.tinyusb.build.flags.usbstack=-DUSE_TINYUSB 
+ 
+# Menu: Debug 
 adafruit_feather_m4_can.menu.debug.off=Off 
 adafruit_feather_m4_can.menu.debug.on=On 
 adafruit_feather_m4_can.menu.debug.on.build.flags.debug=-g 
@@ -1409,7 +1530,7 @@ adafruit_trellis_m4.build.board=TRELLIS_M4
 adafruit_trellis_m4.build.core=arduino 
 adafruit_trellis_m4.build.extra_flags=-D__SAMD51G19A__ -DCRYSTALLESS -DADAFRUIT_TRELLIS_M4_EXPRESS -D__SAMD51__ -D__FPU_PRESENT -DARM_MATH_CM4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 ${build.usb_flags} 
 adafruit_trellis_m4.build.ldscript=linker_scripts/gcc/flash_with_bootloader.ld 
-adafruit_trellis_m4.build.openocdscript=openocd_scripts/trellis_m4.cfg 
+adafruit_trellis_m4.build.openocdscript=scripts/openocd/daplink_samd51.cfg 
 adafruit_trellis_m4.build.variant=trellis_m4 
 adafruit_trellis_m4.build.variant_system_lib= 
 adafruit_trellis_m4.build.vid=0x239A 
@@ -1418,11 +1539,13 @@ adafruit_trellis_m4.bootloader.tool=openocd
 adafruit_trellis_m4.bootloader.file=trellisM4/bootloader-trellis_m4-v2.0.0-adafruit.5.bin 
 adafruit_trellis_m4.compiler.arm.cmsis.ldflags="-L${runtime.tools.CMSIS-5.4.0.path}/CMSIS/Lib/GCC/" "-L${build.variant.path}" -larm_cortexM4lf_math -mfloat-abi=hard -mfpu=fpv4-sp-d16 
  
-# Menu 
+# Menu: Cache 
 adafruit_trellis_m4.menu.cache.on=Enabled 
 adafruit_trellis_m4.menu.cache.on.build.cache_flags=-DENABLE_CACHE 
 adafruit_trellis_m4.menu.cache.off=Disabled 
 adafruit_trellis_m4.menu.cache.off.build.cache_flags= 
+ 
+# Menu: Speed 
 adafruit_trellis_m4.menu.speed.120=120 MHz (standard) 
 adafruit_trellis_m4.menu.speed.120.build.f_cpu=120000000L 
 adafruit_trellis_m4.menu.speed.150=150 MHz (overclock) 
@@ -1431,6 +1554,8 @@ adafruit_trellis_m4.menu.speed.180=180 MHz (overclock)
 adafruit_trellis_m4.menu.speed.180.build.f_cpu=180000000L 
 adafruit_trellis_m4.menu.speed.200=200 MHz (overclock) 
 adafruit_trellis_m4.menu.speed.200.build.f_cpu=200000000L 
+ 
+# Menu: Optimization 
 adafruit_trellis_m4.menu.opt.small=Small (-Os) (standard) 
 adafruit_trellis_m4.menu.opt.small.build.flags.optimize=-Os 
 adafruit_trellis_m4.menu.opt.fast=Fast (-O2) 
@@ -1441,13 +1566,19 @@ adafruit_trellis_m4.menu.opt.fastest=Fastest (-Ofast)
 adafruit_trellis_m4.menu.opt.fastest.build.flags.optimize=-Ofast 
 adafruit_trellis_m4.menu.opt.dragons=Here be dragons (-Ofast -funroll-loops) 
 adafruit_trellis_m4.menu.opt.dragons.build.flags.optimize=-Ofast -funroll-loops 
+ 
+# Menu: QSPI Speed 
 adafruit_trellis_m4.menu.maxqspi.50=50 MHz (standard) 
 adafruit_trellis_m4.menu.maxqspi.50.build.flags.maxqspi=-DVARIANT_QSPI_BAUD_DEFAULT=50000000 
 adafruit_trellis_m4.menu.maxqspi.fcpu=CPU Speed / 2 
 adafruit_trellis_m4.menu.maxqspi.fcpu.build.flags.maxqspi=-DVARIANT_QSPI_BAUD_DEFAULT=(${build.f_cpu}) 
+ 
+# Menu: USB Stack 
 adafruit_trellis_m4.menu.usbstack.arduino=Arduino 
 adafruit_trellis_m4.menu.usbstack.tinyusb=TinyUSB 
 adafruit_trellis_m4.menu.usbstack.tinyusb.build.flags.usbstack=-DUSE_TINYUSB 
+ 
+# Menu: Debug 
 adafruit_trellis_m4.menu.debug.off=Off 
 adafruit_trellis_m4.menu.debug.on=On 
 adafruit_trellis_m4.menu.debug.on.build.flags.debug=-g 
@@ -1484,7 +1615,7 @@ adafruit_pyportal_m4.build.board=PYPORTAL_M4
 adafruit_pyportal_m4.build.core=arduino 
 adafruit_pyportal_m4.build.extra_flags=-D__SAMD51J20A__ -DCRYSTALLESS -DADAFRUIT_PYPORTAL -D__SAMD51__ -D__FPU_PRESENT -DARM_MATH_CM4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 ${build.usb_flags} 
 adafruit_pyportal_m4.build.ldscript=linker_scripts/gcc/flash_with_bootloader.ld 
-adafruit_pyportal_m4.build.openocdscript=openocd_scripts/pyportal_m4.cfg 
+adafruit_pyportal_m4.build.openocdscript=scripts/openocd/daplink_samd51.cfg 
 adafruit_pyportal_m4.build.variant=pyportal_m4 
 adafruit_pyportal_m4.build.variant_system_lib= 
 adafruit_pyportal_m4.build.vid=0x239A 
@@ -1493,11 +1624,13 @@ adafruit_pyportal_m4.bootloader.tool=openocd
 adafruit_pyportal_m4.bootloader.file=metroM4/bootloader-metro_m4-v2.0.0-adafruit.5.bin 
 adafruit_pyportal_m4.compiler.arm.cmsis.ldflags="-L${runtime.tools.CMSIS-5.4.0.path}/CMSIS/Lib/GCC/" "-L${build.variant.path}" -larm_cortexM4lf_math -mfloat-abi=hard -mfpu=fpv4-sp-d16 
  
-# Menu 
+# Menu: Cache 
 adafruit_pyportal_m4.menu.cache.on=Enabled 
 adafruit_pyportal_m4.menu.cache.on.build.cache_flags=-DENABLE_CACHE 
 adafruit_pyportal_m4.menu.cache.off=Disabled 
 adafruit_pyportal_m4.menu.cache.off.build.cache_flags= 
+ 
+# Menu: Speed 
 adafruit_pyportal_m4.menu.speed.120=120 MHz (standard) 
 adafruit_pyportal_m4.menu.speed.120.build.f_cpu=120000000L 
 adafruit_pyportal_m4.menu.speed.150=150 MHz (overclock) 
@@ -1506,6 +1639,8 @@ adafruit_pyportal_m4.menu.speed.180=180 MHz (overclock)
 adafruit_pyportal_m4.menu.speed.180.build.f_cpu=180000000L 
 adafruit_pyportal_m4.menu.speed.200=200 MHz (overclock) 
 adafruit_pyportal_m4.menu.speed.200.build.f_cpu=200000000L 
+ 
+# Menu: Optimization 
 adafruit_pyportal_m4.menu.opt.small=Small (-Os) (standard) 
 adafruit_pyportal_m4.menu.opt.small.build.flags.optimize=-Os 
 adafruit_pyportal_m4.menu.opt.fast=Fast (-O2) 
@@ -1516,13 +1651,19 @@ adafruit_pyportal_m4.menu.opt.fastest=Fastest (-Ofast)
 adafruit_pyportal_m4.menu.opt.fastest.build.flags.optimize=-Ofast 
 adafruit_pyportal_m4.menu.opt.dragons=Here be dragons (-Ofast -funroll-loops) 
 adafruit_pyportal_m4.menu.opt.dragons.build.flags.optimize=-Ofast -funroll-loops 
+ 
+# Menu: QSPI Speed 
 adafruit_pyportal_m4.menu.maxqspi.50=50 MHz (standard) 
 adafruit_pyportal_m4.menu.maxqspi.50.build.flags.maxqspi=-DVARIANT_QSPI_BAUD_DEFAULT=50000000 
 adafruit_pyportal_m4.menu.maxqspi.fcpu=CPU Speed / 2 
 adafruit_pyportal_m4.menu.maxqspi.fcpu.build.flags.maxqspi=-DVARIANT_QSPI_BAUD_DEFAULT=(${build.f_cpu}) 
+ 
+# Menu: USB Stack 
 adafruit_pyportal_m4.menu.usbstack.arduino=Arduino 
 adafruit_pyportal_m4.menu.usbstack.tinyusb=TinyUSB 
 adafruit_pyportal_m4.menu.usbstack.tinyusb.build.flags.usbstack=-DUSE_TINYUSB 
+ 
+# Menu: Debug 
 adafruit_pyportal_m4.menu.debug.off=Off 
 adafruit_pyportal_m4.menu.debug.on=On 
 adafruit_pyportal_m4.menu.debug.on.build.flags.debug=-g 
@@ -1557,7 +1698,7 @@ adafruit_pyportal_m4_titano.build.board=PYPORTAL_M4_TITANO
 adafruit_pyportal_m4_titano.build.core=arduino 
 adafruit_pyportal_m4_titano.build.extra_flags=-D__SAMD51J20A__ -DCRYSTALLESS -DADAFRUIT_PYPORTAL_M4_TITANO -D__SAMD51__ -D__FPU_PRESENT -DARM_MATH_CM4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 ${build.usb_flags} 
 adafruit_pyportal_m4_titano.build.ldscript=linker_scripts/gcc/flash_with_bootloader.ld 
-adafruit_pyportal_m4_titano.build.openocdscript=openocd_scripts/pyportal_m4_titano.cfg 
+adafruit_pyportal_m4_titano.build.openocdscript=scripts/openocd/daplink_samd51.cfg 
 adafruit_pyportal_m4_titano.build.variant=pyportal_m4_titano 
 adafruit_pyportal_m4_titano.build.variant_system_lib= 
 adafruit_pyportal_m4_titano.build.vid=0x239A 
@@ -1566,11 +1707,13 @@ adafruit_pyportal_m4_titano.bootloader.tool=openocd
 adafruit_pyportal_m4_titano.bootloader.file=metroM4/bootloader-metro_m4-v2.0.0-adafruit.5.bin 
 adafruit_pyportal_m4_titano.compiler.arm.cmsis.ldflags="-L${runtime.tools.CMSIS-5.4.0.path}/CMSIS/Lib/GCC/" "-L${build.variant.path}" -larm_cortexM4lf_math -mfloat-abi=hard -mfpu=fpv4-sp-d16 
  
-# Menu 
+# Menu: Cache 
 adafruit_pyportal_m4_titano.menu.cache.on=Enabled 
 adafruit_pyportal_m4_titano.menu.cache.on.build.cache_flags=-DENABLE_CACHE 
 adafruit_pyportal_m4_titano.menu.cache.off=Disabled 
 adafruit_pyportal_m4_titano.menu.cache.off.build.cache_flags= 
+ 
+# Menu: Speed 
 adafruit_pyportal_m4_titano.menu.speed.120=120 MHz (standard) 
 adafruit_pyportal_m4_titano.menu.speed.120.build.f_cpu=120000000L 
 adafruit_pyportal_m4_titano.menu.speed.150=150 MHz (overclock) 
@@ -1579,6 +1722,8 @@ adafruit_pyportal_m4_titano.menu.speed.180=180 MHz (overclock)
 adafruit_pyportal_m4_titano.menu.speed.180.build.f_cpu=180000000L 
 adafruit_pyportal_m4_titano.menu.speed.200=200 MHz (overclock) 
 adafruit_pyportal_m4_titano.menu.speed.200.build.f_cpu=200000000L 
+ 
+# Menu: Optimization 
 adafruit_pyportal_m4_titano.menu.opt.small=Small (-Os) (standard) 
 adafruit_pyportal_m4_titano.menu.opt.small.build.flags.optimize=-Os 
 adafruit_pyportal_m4_titano.menu.opt.fast=Fast (-O2) 
@@ -1589,13 +1734,19 @@ adafruit_pyportal_m4_titano.menu.opt.fastest=Fastest (-Ofast)
 adafruit_pyportal_m4_titano.menu.opt.fastest.build.flags.optimize=-Ofast 
 adafruit_pyportal_m4_titano.menu.opt.dragons=Here be dragons (-Ofast -funroll-loops) 
 adafruit_pyportal_m4_titano.menu.opt.dragons.build.flags.optimize=-Ofast -funroll-loops 
+ 
+# Menu: QSPI Speed 
 adafruit_pyportal_m4_titano.menu.maxqspi.50=50 MHz (standard) 
 adafruit_pyportal_m4_titano.menu.maxqspi.50.build.flags.maxqspi=-DVARIANT_QSPI_BAUD_DEFAULT=50000000 
 adafruit_pyportal_m4_titano.menu.maxqspi.fcpu=CPU Speed / 2 
 adafruit_pyportal_m4_titano.menu.maxqspi.fcpu.build.flags.maxqspi=-DVARIANT_QSPI_BAUD_DEFAULT=(${build.f_cpu}) 
+ 
+# Menu: USB Stack 
 adafruit_pyportal_m4_titano.menu.usbstack.arduino=Arduino 
 adafruit_pyportal_m4_titano.menu.usbstack.tinyusb=TinyUSB 
 adafruit_pyportal_m4_titano.menu.usbstack.tinyusb.build.flags.usbstack=-DUSE_TINYUSB 
+ 
+# Menu: Debug 
 adafruit_pyportal_m4_titano.menu.debug.off=Off 
 adafruit_pyportal_m4_titano.menu.debug.on=On 
 adafruit_pyportal_m4_titano.menu.debug.on.build.flags.debug=-g 
@@ -1634,7 +1785,7 @@ adafruit_pybadge_m4.build.board=PYBADGE_M4
 adafruit_pybadge_m4.build.core=arduino 
 adafruit_pybadge_m4.build.extra_flags=-D__SAMD51J19A__ -DCRYSTALLESS -DADAFRUIT_PYBADGE_M4_EXPRESS -D__SAMD51__ -D__FPU_PRESENT -DARM_MATH_CM4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 ${build.usb_flags} 
 adafruit_pybadge_m4.build.ldscript=linker_scripts/gcc/flash_with_bootloader.ld 
-adafruit_pybadge_m4.build.openocdscript=openocd_scripts/pybadge_m4.cfg 
+adafruit_pybadge_m4.build.openocdscript=scripts/openocd/daplink_samd51.cfg 
 adafruit_pybadge_m4.build.variant=pybadge_m4 
 adafruit_pybadge_m4.build.variant_system_lib= 
 adafruit_pybadge_m4.build.vid=0x239A 
@@ -1643,11 +1794,13 @@ adafruit_pybadge_m4.bootloader.tool=openocd
 adafruit_pybadge_m4.bootloader.file=featherM4/bootloader-feather_m4-v2.0.0-adafruit.5.bin 
 adafruit_pybadge_m4.compiler.arm.cmsis.ldflags="-L${runtime.tools.CMSIS-5.4.0.path}/CMSIS/Lib/GCC/" "-L${build.variant.path}" -larm_cortexM4lf_math -mfloat-abi=hard -mfpu=fpv4-sp-d16 
  
-# Menu 
+# Menu: Cache 
 adafruit_pybadge_m4.menu.cache.on=Enabled 
 adafruit_pybadge_m4.menu.cache.on.build.cache_flags=-DENABLE_CACHE 
 adafruit_pybadge_m4.menu.cache.off=Disabled 
 adafruit_pybadge_m4.menu.cache.off.build.cache_flags= 
+ 
+# Menu: Speed 
 adafruit_pybadge_m4.menu.speed.120=120 MHz (standard) 
 adafruit_pybadge_m4.menu.speed.120.build.f_cpu=120000000L 
 adafruit_pybadge_m4.menu.speed.150=150 MHz (overclock) 
@@ -1656,6 +1809,8 @@ adafruit_pybadge_m4.menu.speed.180=180 MHz (overclock)
 adafruit_pybadge_m4.menu.speed.180.build.f_cpu=180000000L 
 adafruit_pybadge_m4.menu.speed.200=200 MHz (overclock) 
 adafruit_pybadge_m4.menu.speed.200.build.f_cpu=200000000L 
+ 
+# Menu: Optimization 
 adafruit_pybadge_m4.menu.opt.small=Small (-Os) (standard) 
 adafruit_pybadge_m4.menu.opt.small.build.flags.optimize=-Os 
 adafruit_pybadge_m4.menu.opt.fast=Fast (-O2) 
@@ -1666,13 +1821,19 @@ adafruit_pybadge_m4.menu.opt.fastest=Fastest (-Ofast)
 adafruit_pybadge_m4.menu.opt.fastest.build.flags.optimize=-Ofast 
 adafruit_pybadge_m4.menu.opt.dragons=Here be dragons (-Ofast -funroll-loops) 
 adafruit_pybadge_m4.menu.opt.dragons.build.flags.optimize=-Ofast -funroll-loops 
+ 
+# Menu: QSPI Speed 
 adafruit_pybadge_m4.menu.maxqspi.50=50 MHz (standard) 
 adafruit_pybadge_m4.menu.maxqspi.50.build.flags.maxqspi=-DVARIANT_QSPI_BAUD_DEFAULT=50000000 
 adafruit_pybadge_m4.menu.maxqspi.fcpu=CPU Speed / 2 
 adafruit_pybadge_m4.menu.maxqspi.fcpu.build.flags.maxqspi=-DVARIANT_QSPI_BAUD_DEFAULT=(${build.f_cpu}) 
+ 
+# Menu: USB Stack 
 adafruit_pybadge_m4.menu.usbstack.arduino=Arduino 
 adafruit_pybadge_m4.menu.usbstack.tinyusb=TinyUSB 
 adafruit_pybadge_m4.menu.usbstack.tinyusb.build.flags.usbstack=-DUSE_TINYUSB 
+ 
+# Menu: Debug 
 adafruit_pybadge_m4.menu.debug.off=Off 
 adafruit_pybadge_m4.menu.debug.on=On 
 adafruit_pybadge_m4.menu.debug.on.build.flags.debug=-g 
@@ -1707,7 +1868,7 @@ adafruit_metro_m4_airliftlite.build.board=METRO_M4_AIRLIFT_LITE
 adafruit_metro_m4_airliftlite.build.core=arduino 
 adafruit_metro_m4_airliftlite.build.extra_flags=-D__SAMD51J19A__ -DADAFRUIT_METRO_M4_AIRLIFT_LITE -D__SAMD51__ -D__FPU_PRESENT -DARM_MATH_CM4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 ${build.usb_flags} 
 adafruit_metro_m4_airliftlite.build.ldscript=linker_scripts/gcc/flash_with_bootloader.ld 
-adafruit_metro_m4_airliftlite.build.openocdscript=openocd_scripts/metro_m4_airlift.cfg 
+adafruit_metro_m4_airliftlite.build.openocdscript=scripts/openocd/daplink_samd51.cfg 
 adafruit_metro_m4_airliftlite.build.variant=metro_m4_airlift 
 adafruit_metro_m4_airliftlite.build.variant_system_lib= 
 adafruit_metro_m4_airliftlite.build.vid=0x239A 
@@ -1716,11 +1877,13 @@ adafruit_metro_m4_airliftlite.bootloader.tool=openocd
 adafruit_metro_m4_airliftlite.bootloader.file=metroM4/bootloader-metro_m4-v2.0.0-adafruit.5.bin 
 adafruit_metro_m4_airliftlite.compiler.arm.cmsis.ldflags="-L${runtime.tools.CMSIS-5.4.0.path}/CMSIS/Lib/GCC/" "-L${build.variant.path}" -larm_cortexM4lf_math -mfloat-abi=hard -mfpu=fpv4-sp-d16 
  
-# Menu 
+# Menu: Cache 
 adafruit_metro_m4_airliftlite.menu.cache.on=Enabled 
 adafruit_metro_m4_airliftlite.menu.cache.on.build.cache_flags=-DENABLE_CACHE 
 adafruit_metro_m4_airliftlite.menu.cache.off=Disabled 
 adafruit_metro_m4_airliftlite.menu.cache.off.build.cache_flags= 
+ 
+# Menu: Speed 
 adafruit_metro_m4_airliftlite.menu.speed.120=120 MHz (standard) 
 adafruit_metro_m4_airliftlite.menu.speed.120.build.f_cpu=120000000L 
 adafruit_metro_m4_airliftlite.menu.speed.150=150 MHz (overclock) 
@@ -1729,6 +1892,8 @@ adafruit_metro_m4_airliftlite.menu.speed.180=180 MHz (overclock)
 adafruit_metro_m4_airliftlite.menu.speed.180.build.f_cpu=180000000L 
 adafruit_metro_m4_airliftlite.menu.speed.200=200 MHz (overclock) 
 adafruit_metro_m4_airliftlite.menu.speed.200.build.f_cpu=200000000L 
+ 
+# Menu: Optimization 
 adafruit_metro_m4_airliftlite.menu.opt.small=Small (-Os) (standard) 
 adafruit_metro_m4_airliftlite.menu.opt.small.build.flags.optimize=-Os 
 adafruit_metro_m4_airliftlite.menu.opt.fast=Fast (-O2) 
@@ -1739,13 +1904,19 @@ adafruit_metro_m4_airliftlite.menu.opt.fastest=Fastest (-Ofast)
 adafruit_metro_m4_airliftlite.menu.opt.fastest.build.flags.optimize=-Ofast 
 adafruit_metro_m4_airliftlite.menu.opt.dragons=Here be dragons (-Ofast -funroll-loops) 
 adafruit_metro_m4_airliftlite.menu.opt.dragons.build.flags.optimize=-Ofast -funroll-loops 
+ 
+# Menu: QSPI Speed 
 adafruit_metro_m4_airliftlite.menu.maxqspi.50=50 MHz (standard) 
 adafruit_metro_m4_airliftlite.menu.maxqspi.50.build.flags.maxqspi=-DVARIANT_QSPI_BAUD_DEFAULT=50000000 
 adafruit_metro_m4_airliftlite.menu.maxqspi.fcpu=CPU Speed / 2 
 adafruit_metro_m4_airliftlite.menu.maxqspi.fcpu.build.flags.maxqspi=-DVARIANT_QSPI_BAUD_DEFAULT=(${build.f_cpu}) 
+ 
+# Menu: USB Stack 
 adafruit_metro_m4_airliftlite.menu.usbstack.arduino=Arduino 
 adafruit_metro_m4_airliftlite.menu.usbstack.tinyusb=TinyUSB 
 adafruit_metro_m4_airliftlite.menu.usbstack.tinyusb.build.flags.usbstack=-DUSE_TINYUSB 
+ 
+# Menu: Debug 
 adafruit_metro_m4_airliftlite.menu.debug.off=Off 
 adafruit_metro_m4_airliftlite.menu.debug.on=On 
 adafruit_metro_m4_airliftlite.menu.debug.on.build.flags.debug=-g 
@@ -1780,9 +1951,9 @@ adafruit_pygamer_m4.build.usb_product=PyGamer M4 Express
 adafruit_pygamer_m4.build.usb_manufacturer=Adafruit 
 adafruit_pygamer_m4.build.board=PYGAMER_M4 
 adafruit_pygamer_m4.build.core=arduino 
-adafruit_pygamer_m4.build.extra_flags=-D__SAMD51J19A__ -DCRYSTALLESS  -DADAFRUIT_PYGAMER_M4_EXPRESS -D__SAMD51__ -D__FPU_PRESENT -DARM_MATH_CM4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 ${build.usb_flags} 
+adafruit_pygamer_m4.build.extra_flags=-D__SAMD51J19A__ -DCRYSTALLESS -DADAFRUIT_PYGAMER_M4_EXPRESS -D__SAMD51__ -D__FPU_PRESENT -DARM_MATH_CM4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 ${build.usb_flags} 
 adafruit_pygamer_m4.build.ldscript=linker_scripts/gcc/flash_with_bootloader.ld 
-adafruit_pygamer_m4.build.openocdscript=openocd_scripts/pygamer_m4.cfg 
+adafruit_pygamer_m4.build.openocdscript=scripts/openocd/daplink_samd51.cfg 
 adafruit_pygamer_m4.build.variant=pygamer_m4 
 adafruit_pygamer_m4.build.variant_system_lib= 
 adafruit_pygamer_m4.build.vid=0x239A 
@@ -1791,11 +1962,13 @@ adafruit_pygamer_m4.bootloader.tool=openocd
 adafruit_pygamer_m4.bootloader.file=featherM4/bootloader-feather_m4-v2.0.0-adafruit.5.bin 
 adafruit_pygamer_m4.compiler.arm.cmsis.ldflags="-L${runtime.tools.CMSIS-5.4.0.path}/CMSIS/Lib/GCC/" "-L${build.variant.path}" -larm_cortexM4lf_math -mfloat-abi=hard -mfpu=fpv4-sp-d16 
  
-# Menu 
+# Menu: Cache 
 adafruit_pygamer_m4.menu.cache.on=Enabled 
 adafruit_pygamer_m4.menu.cache.on.build.cache_flags=-DENABLE_CACHE 
 adafruit_pygamer_m4.menu.cache.off=Disabled 
 adafruit_pygamer_m4.menu.cache.off.build.cache_flags= 
+ 
+# Menu: Speed 
 adafruit_pygamer_m4.menu.speed.120=120 MHz (standard) 
 adafruit_pygamer_m4.menu.speed.120.build.f_cpu=120000000L 
 adafruit_pygamer_m4.menu.speed.150=150 MHz (overclock) 
@@ -1804,6 +1977,8 @@ adafruit_pygamer_m4.menu.speed.180=180 MHz (overclock)
 adafruit_pygamer_m4.menu.speed.180.build.f_cpu=180000000L 
 adafruit_pygamer_m4.menu.speed.200=200 MHz (overclock) 
 adafruit_pygamer_m4.menu.speed.200.build.f_cpu=200000000L 
+ 
+# Menu: Optimization 
 adafruit_pygamer_m4.menu.opt.small=Small (-Os) (standard) 
 adafruit_pygamer_m4.menu.opt.small.build.flags.optimize=-Os 
 adafruit_pygamer_m4.menu.opt.fast=Fast (-O2) 
@@ -1814,13 +1989,19 @@ adafruit_pygamer_m4.menu.opt.fastest=Fastest (-Ofast)
 adafruit_pygamer_m4.menu.opt.fastest.build.flags.optimize=-Ofast 
 adafruit_pygamer_m4.menu.opt.dragons=Here be dragons (-Ofast -funroll-loops) 
 adafruit_pygamer_m4.menu.opt.dragons.build.flags.optimize=-Ofast -funroll-loops 
+ 
+# Menu: QSPI Speed 
 adafruit_pygamer_m4.menu.maxqspi.50=50 MHz (standard) 
 adafruit_pygamer_m4.menu.maxqspi.50.build.flags.maxqspi=-DVARIANT_QSPI_BAUD_DEFAULT=50000000 
 adafruit_pygamer_m4.menu.maxqspi.fcpu=CPU Speed / 2 
 adafruit_pygamer_m4.menu.maxqspi.fcpu.build.flags.maxqspi=-DVARIANT_QSPI_BAUD_DEFAULT=(${build.f_cpu}) 
+ 
+# Menu: USB Stack 
 adafruit_pygamer_m4.menu.usbstack.arduino=Arduino 
 adafruit_pygamer_m4.menu.usbstack.tinyusb=TinyUSB 
 adafruit_pygamer_m4.menu.usbstack.tinyusb.build.flags.usbstack=-DUSE_TINYUSB 
+ 
+# Menu: Debug 
 adafruit_pygamer_m4.menu.debug.off=Off 
 adafruit_pygamer_m4.menu.debug.on=On 
 adafruit_pygamer_m4.menu.debug.on.build.flags.debug=-g 
@@ -1855,9 +2036,9 @@ adafruit_pybadge_airlift_m4.build.usb_product=pyBadge AirLift M4
 adafruit_pybadge_airlift_m4.build.usb_manufacturer=Adafruit 
 adafruit_pybadge_airlift_m4.build.board=PYBADGE_AIRLIFT_M4 
 adafruit_pybadge_airlift_m4.build.core=arduino 
-adafruit_pybadge_airlift_m4.build.extra_flags=-D__SAMD51J20A__ -DCRYSTALLESS  -DADAFRUIT_PYBADGE_AIRLIFT_M4 -D__SAMD51__ -D__FPU_PRESENT -DARM_MATH_CM4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 ${build.usb_flags} 
+adafruit_pybadge_airlift_m4.build.extra_flags=-D__SAMD51J20A__ -DCRYSTALLESS -DADAFRUIT_PYBADGE_AIRLIFT_M4 -D__SAMD51__ -D__FPU_PRESENT -DARM_MATH_CM4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 ${build.usb_flags} 
 adafruit_pybadge_airlift_m4.build.ldscript=linker_scripts/gcc/flash_with_bootloader.ld 
-adafruit_pybadge_airlift_m4.build.openocdscript=openocd_scripts/pybadge_airlift_m4.cfg 
+adafruit_pybadge_airlift_m4.build.openocdscript=scripts/openocd/daplink_samd51.cfg 
 adafruit_pybadge_airlift_m4.build.variant=pybadge_airlift_m4 
 adafruit_pybadge_airlift_m4.build.variant_system_lib= 
 adafruit_pybadge_airlift_m4.build.vid=0x239A 
@@ -1866,11 +2047,13 @@ adafruit_pybadge_airlift_m4.bootloader.tool=openocd
 adafruit_pybadge_airlift_m4.bootloader.file=featherM4/bootloader-feather_m4-v2.0.0-adafruit.5.bin 
 adafruit_pybadge_airlift_m4.compiler.arm.cmsis.ldflags="-L${runtime.tools.CMSIS-5.4.0.path}/CMSIS/Lib/GCC/" "-L${build.variant.path}" -larm_cortexM4lf_math -mfloat-abi=hard -mfpu=fpv4-sp-d16 
  
-# Menu 
+# Menu: Cache 
 adafruit_pybadge_airlift_m4.menu.cache.on=Enabled 
 adafruit_pybadge_airlift_m4.menu.cache.on.build.cache_flags=-DENABLE_CACHE 
 adafruit_pybadge_airlift_m4.menu.cache.off=Disabled 
 adafruit_pybadge_airlift_m4.menu.cache.off.build.cache_flags= 
+ 
+# Menu: Speed 
 adafruit_pybadge_airlift_m4.menu.speed.120=120 MHz (standard) 
 adafruit_pybadge_airlift_m4.menu.speed.120.build.f_cpu=120000000L 
 adafruit_pybadge_airlift_m4.menu.speed.150=150 MHz (overclock) 
@@ -1879,6 +2062,8 @@ adafruit_pybadge_airlift_m4.menu.speed.180=180 MHz (overclock)
 adafruit_pybadge_airlift_m4.menu.speed.180.build.f_cpu=180000000L 
 adafruit_pybadge_airlift_m4.menu.speed.200=200 MHz (overclock) 
 adafruit_pybadge_airlift_m4.menu.speed.200.build.f_cpu=200000000L 
+ 
+# Menu: Optimization 
 adafruit_pybadge_airlift_m4.menu.opt.small=Small (-Os) (standard) 
 adafruit_pybadge_airlift_m4.menu.opt.small.build.flags.optimize=-Os 
 adafruit_pybadge_airlift_m4.menu.opt.fast=Fast (-O2) 
@@ -1889,13 +2074,19 @@ adafruit_pybadge_airlift_m4.menu.opt.fastest=Fastest (-Ofast)
 adafruit_pybadge_airlift_m4.menu.opt.fastest.build.flags.optimize=-Ofast 
 adafruit_pybadge_airlift_m4.menu.opt.dragons=Here be dragons (-Ofast -funroll-loops) 
 adafruit_pybadge_airlift_m4.menu.opt.dragons.build.flags.optimize=-Ofast -funroll-loops 
+ 
+# Menu: QSPI Speed 
 adafruit_pybadge_airlift_m4.menu.maxqspi.50=50 MHz (standard) 
 adafruit_pybadge_airlift_m4.menu.maxqspi.50.build.flags.maxqspi=-DVARIANT_QSPI_BAUD_DEFAULT=50000000 
 adafruit_pybadge_airlift_m4.menu.maxqspi.fcpu=CPU Speed / 2 
 adafruit_pybadge_airlift_m4.menu.maxqspi.fcpu.build.flags.maxqspi=-DVARIANT_QSPI_BAUD_DEFAULT=(${build.f_cpu}) 
+ 
+# Menu: USB Stack 
 adafruit_pybadge_airlift_m4.menu.usbstack.arduino=Arduino 
 adafruit_pybadge_airlift_m4.menu.usbstack.tinyusb=TinyUSB 
 adafruit_pybadge_airlift_m4.menu.usbstack.tinyusb.build.flags.usbstack=-DUSE_TINYUSB 
+ 
+# Menu: Debug 
 adafruit_pybadge_airlift_m4.menu.debug.off=Off 
 adafruit_pybadge_airlift_m4.menu.debug.on=On 
 adafruit_pybadge_airlift_m4.menu.debug.on.build.flags.debug=-g 
@@ -1930,9 +2121,9 @@ adafruit_monster_m4sk.build.usb_product=MONSTER M4SK
 adafruit_monster_m4sk.build.usb_manufacturer=Adafruit 
 adafruit_monster_m4sk.build.board=MONSTER_M4SK 
 adafruit_monster_m4sk.build.core=arduino 
-adafruit_monster_m4sk.build.extra_flags=-D__SAMD51G19A__ -DCRYSTALLESS  -DADAFRUIT_MONSTER_M4SK_EXPRESS -D__SAMD51__ -D__FPU_PRESENT -DARM_MATH_CM4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 ${build.usb_flags} 
+adafruit_monster_m4sk.build.extra_flags=-D__SAMD51G19A__ -DCRYSTALLESS -DADAFRUIT_MONSTER_M4SK_EXPRESS -D__SAMD51__ -D__FPU_PRESENT -DARM_MATH_CM4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 ${build.usb_flags} 
 adafruit_monster_m4sk.build.ldscript=linker_scripts/gcc/flash_with_bootloader.ld 
-adafruit_monster_m4sk.build.openocdscript=openocd_scripts/monster_m4sk.cfg 
+adafruit_monster_m4sk.build.openocdscript=scripts/openocd/daplink_samd51.cfg 
 adafruit_monster_m4sk.build.variant=monster_m4sk 
 adafruit_monster_m4sk.build.variant_system_lib= 
 adafruit_monster_m4sk.build.vid=0x239A 
@@ -1941,11 +2132,13 @@ adafruit_monster_m4sk.bootloader.tool=openocd
 adafruit_monster_m4sk.bootloader.file=featherM4/bootloader-feather_m4-v2.0.0-adafruit.5.bin 
 adafruit_monster_m4sk.compiler.arm.cmsis.ldflags="-L${runtime.tools.CMSIS-5.4.0.path}/CMSIS/Lib/GCC/" "-L${build.variant.path}" -larm_cortexM4lf_math -mfloat-abi=hard -mfpu=fpv4-sp-d16 
  
-# Menu 
+# Menu: Cache 
 adafruit_monster_m4sk.menu.cache.on=Enabled 
 adafruit_monster_m4sk.menu.cache.on.build.cache_flags=-DENABLE_CACHE 
 adafruit_monster_m4sk.menu.cache.off=Disabled 
 adafruit_monster_m4sk.menu.cache.off.build.cache_flags= 
+ 
+# Menu: Speed 
 adafruit_monster_m4sk.menu.speed.120=120 MHz (standard) 
 adafruit_monster_m4sk.menu.speed.120.build.f_cpu=120000000L 
 adafruit_monster_m4sk.menu.speed.150=150 MHz (overclock) 
@@ -1954,6 +2147,8 @@ adafruit_monster_m4sk.menu.speed.180=180 MHz (overclock)
 adafruit_monster_m4sk.menu.speed.180.build.f_cpu=180000000L 
 adafruit_monster_m4sk.menu.speed.200=200 MHz (overclock) 
 adafruit_monster_m4sk.menu.speed.200.build.f_cpu=200000000L 
+ 
+# Menu: Optimization 
 adafruit_monster_m4sk.menu.opt.small=Small (-Os) (standard) 
 adafruit_monster_m4sk.menu.opt.small.build.flags.optimize=-Os 
 adafruit_monster_m4sk.menu.opt.fast=Fast (-O2) 
@@ -1964,13 +2159,19 @@ adafruit_monster_m4sk.menu.opt.fastest=Fastest (-Ofast)
 adafruit_monster_m4sk.menu.opt.fastest.build.flags.optimize=-Ofast 
 adafruit_monster_m4sk.menu.opt.dragons=Here be dragons (-Ofast -funroll-loops) 
 adafruit_monster_m4sk.menu.opt.dragons.build.flags.optimize=-Ofast -funroll-loops 
+ 
+# Menu: QSPI Speed 
 adafruit_monster_m4sk.menu.maxqspi.50=50 MHz (standard) 
 adafruit_monster_m4sk.menu.maxqspi.50.build.flags.maxqspi=-DVARIANT_QSPI_BAUD_DEFAULT=50000000 
 adafruit_monster_m4sk.menu.maxqspi.fcpu=CPU Speed / 2 
 adafruit_monster_m4sk.menu.maxqspi.fcpu.build.flags.maxqspi=-DVARIANT_QSPI_BAUD_DEFAULT=(${build.f_cpu}) 
+ 
+# Menu: USB Stack 
 adafruit_monster_m4sk.menu.usbstack.arduino=Arduino 
 adafruit_monster_m4sk.menu.usbstack.tinyusb=TinyUSB 
 adafruit_monster_m4sk.menu.usbstack.tinyusb.build.flags.usbstack=-DUSE_TINYUSB 
+ 
+# Menu: Debug 
 adafruit_monster_m4sk.menu.debug.off=Off 
 adafruit_monster_m4sk.menu.debug.on=On 
 adafruit_monster_m4sk.menu.debug.on.build.flags.debug=-g 
@@ -2005,9 +2206,9 @@ adafruit_hallowing_m4.build.usb_product=Hallowing M4
 adafruit_hallowing_m4.build.usb_manufacturer=Adafruit 
 adafruit_hallowing_m4.build.board=HALLOWING_M4 
 adafruit_hallowing_m4.build.core=arduino 
-adafruit_hallowing_m4.build.extra_flags=-D__SAMD51J19A__ -DCRYSTALLESS  -DADAFRUIT_HALLOWING_M4_EXPRESS -D__SAMD51__ -D__FPU_PRESENT -DARM_MATH_CM4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 ${build.usb_flags} 
+adafruit_hallowing_m4.build.extra_flags=-D__SAMD51J19A__ -DCRYSTALLESS -DADAFRUIT_HALLOWING_M4_EXPRESS -D__SAMD51__ -D__FPU_PRESENT -DARM_MATH_CM4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 ${build.usb_flags} 
 adafruit_hallowing_m4.build.ldscript=linker_scripts/gcc/flash_with_bootloader.ld 
-adafruit_hallowing_m4.build.openocdscript=openocd_scripts/hallowing_m4.cfg 
+adafruit_hallowing_m4.build.openocdscript=scripts/openocd/daplink_samd51.cfg 
 adafruit_hallowing_m4.build.variant=hallowing_m4 
 adafruit_hallowing_m4.build.variant_system_lib= 
 adafruit_hallowing_m4.build.vid=0x239A 
@@ -2016,11 +2217,13 @@ adafruit_hallowing_m4.bootloader.tool=openocd
 adafruit_hallowing_m4.bootloader.file=featherM4/bootloader-feather_m4-v2.0.0-adafruit.5.bin 
 adafruit_hallowing_m4.compiler.arm.cmsis.ldflags="-L${runtime.tools.CMSIS-5.4.0.path}/CMSIS/Lib/GCC/" "-L${build.variant.path}" -larm_cortexM4lf_math -mfloat-abi=hard -mfpu=fpv4-sp-d16 
  
-# Menu 
+# Menu: Cache 
 adafruit_hallowing_m4.menu.cache.on=Enabled 
 adafruit_hallowing_m4.menu.cache.on.build.cache_flags=-DENABLE_CACHE 
 adafruit_hallowing_m4.menu.cache.off=Disabled 
 adafruit_hallowing_m4.menu.cache.off.build.cache_flags= 
+ 
+# Menu: Speed 
 adafruit_hallowing_m4.menu.speed.120=120 MHz (standard) 
 adafruit_hallowing_m4.menu.speed.120.build.f_cpu=120000000L 
 adafruit_hallowing_m4.menu.speed.150=150 MHz (overclock) 
@@ -2029,6 +2232,8 @@ adafruit_hallowing_m4.menu.speed.180=180 MHz (overclock)
 adafruit_hallowing_m4.menu.speed.180.build.f_cpu=180000000L 
 adafruit_hallowing_m4.menu.speed.200=200 MHz (overclock) 
 adafruit_hallowing_m4.menu.speed.200.build.f_cpu=200000000L 
+ 
+# Menu: Optimization 
 adafruit_hallowing_m4.menu.opt.small=Small (-Os) (standard) 
 adafruit_hallowing_m4.menu.opt.small.build.flags.optimize=-Os 
 adafruit_hallowing_m4.menu.opt.fast=Fast (-O2) 
@@ -2039,13 +2244,19 @@ adafruit_hallowing_m4.menu.opt.fastest=Fastest (-Ofast)
 adafruit_hallowing_m4.menu.opt.fastest.build.flags.optimize=-Ofast 
 adafruit_hallowing_m4.menu.opt.dragons=Here be dragons (-Ofast -funroll-loops) 
 adafruit_hallowing_m4.menu.opt.dragons.build.flags.optimize=-Ofast -funroll-loops 
+ 
+# Menu: QSPI Speed 
 adafruit_hallowing_m4.menu.maxqspi.50=50 MHz (standard) 
 adafruit_hallowing_m4.menu.maxqspi.50.build.flags.maxqspi=-DVARIANT_QSPI_BAUD_DEFAULT=50000000 
 adafruit_hallowing_m4.menu.maxqspi.fcpu=CPU Speed / 2 
 adafruit_hallowing_m4.menu.maxqspi.fcpu.build.flags.maxqspi=-DVARIANT_QSPI_BAUD_DEFAULT=(${build.f_cpu}) 
+ 
+# Menu: USB Stack 
 adafruit_hallowing_m4.menu.usbstack.arduino=Arduino 
 adafruit_hallowing_m4.menu.usbstack.tinyusb=TinyUSB 
 adafruit_hallowing_m4.menu.usbstack.tinyusb.build.flags.usbstack=-DUSE_TINYUSB 
+ 
+# Menu: Debug 
 adafruit_hallowing_m4.menu.debug.off=Off 
 adafruit_hallowing_m4.menu.debug.on=On 
 adafruit_hallowing_m4.menu.debug.on.build.flags.debug=-g 
@@ -2082,7 +2293,7 @@ adafruit_matrixportal_m4.build.board=MATRIXPORTAL_M4
 adafruit_matrixportal_m4.build.core=arduino 
 adafruit_matrixportal_m4.build.extra_flags=-D__SAMD51J19A__ -DCRYSTALLESS  -DADAFRUIT_MATRIXPORTAL_M4_EXPRESS -D__SAMD51__ -D__FPU_PRESENT -DARM_MATH_CM4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 ${build.usb_flags} 
 adafruit_matrixportal_m4.build.ldscript=linker_scripts/gcc/flash_with_bootloader.ld 
-adafruit_matrixportal_m4.build.openocdscript=openocd_scripts/matrixportal_m4.cfg 
+adafruit_matrixportal_m4.build.openocdscript=scripts/openocd/daplink_samd51.cfg 
 adafruit_matrixportal_m4.build.variant=matrixportal_m4 
 adafruit_matrixportal_m4.build.variant_system_lib= 
 adafruit_matrixportal_m4.build.vid=0x239A 
@@ -2091,11 +2302,13 @@ adafruit_matrixportal_m4.bootloader.tool=openocd
 adafruit_matrixportal_m4.bootloader.file=matrixportalM4/bootloader-matrixportal_m4.bin 
 adafruit_matrixportal_m4.compiler.arm.cmsis.ldflags="-L${runtime.tools.CMSIS-5.4.0.path}/CMSIS/Lib/GCC/" "-L${build.variant.path}" -larm_cortexM4lf_math -mfloat-abi=hard -mfpu=fpv4-sp-d16 
  
-# Menu 
+# Menu: Cache 
 adafruit_matrixportal_m4.menu.cache.on=Enabled 
 adafruit_matrixportal_m4.menu.cache.on.build.cache_flags=-DENABLE_CACHE 
 adafruit_matrixportal_m4.menu.cache.off=Disabled 
 adafruit_matrixportal_m4.menu.cache.off.build.cache_flags= 
+ 
+# Menu: Speed 
 adafruit_matrixportal_m4.menu.speed.120=120 MHz (standard) 
 adafruit_matrixportal_m4.menu.speed.120.build.f_cpu=120000000L 
 adafruit_matrixportal_m4.menu.speed.150=150 MHz (overclock) 
@@ -2104,6 +2317,8 @@ adafruit_matrixportal_m4.menu.speed.180=180 MHz (overclock)
 adafruit_matrixportal_m4.menu.speed.180.build.f_cpu=180000000L 
 adafruit_matrixportal_m4.menu.speed.200=200 MHz (overclock) 
 adafruit_matrixportal_m4.menu.speed.200.build.f_cpu=200000000L 
+ 
+# Menu: Optimization 
 adafruit_matrixportal_m4.menu.opt.small=Small (-Os) (standard) 
 adafruit_matrixportal_m4.menu.opt.small.build.flags.optimize=-Os 
 adafruit_matrixportal_m4.menu.opt.fast=Fast (-O2) 
@@ -2114,13 +2329,19 @@ adafruit_matrixportal_m4.menu.opt.fastest=Fastest (-Ofast)
 adafruit_matrixportal_m4.menu.opt.fastest.build.flags.optimize=-Ofast 
 adafruit_matrixportal_m4.menu.opt.dragons=Here be dragons (-Ofast -funroll-loops) 
 adafruit_matrixportal_m4.menu.opt.dragons.build.flags.optimize=-Ofast -funroll-loops 
+ 
+# Menu: QSPI Speed 
 adafruit_matrixportal_m4.menu.maxqspi.50=50 MHz (standard) 
 adafruit_matrixportal_m4.menu.maxqspi.50.build.flags.maxqspi=-DVARIANT_QSPI_BAUD_DEFAULT=50000000 
 adafruit_matrixportal_m4.menu.maxqspi.fcpu=CPU Speed / 2 
 adafruit_matrixportal_m4.menu.maxqspi.fcpu.build.flags.maxqspi=-DVARIANT_QSPI_BAUD_DEFAULT=(${build.f_cpu}) 
+ 
+# Menu: USB Stack 
 adafruit_matrixportal_m4.menu.usbstack.arduino=Arduino 
 adafruit_matrixportal_m4.menu.usbstack.tinyusb=TinyUSB 
 adafruit_matrixportal_m4.menu.usbstack.tinyusb.build.flags.usbstack=-DUSE_TINYUSB 
+ 
+# Menu: Debug 
 adafruit_matrixportal_m4.menu.debug.off=Off 
 adafruit_matrixportal_m4.menu.debug.on=On 
 adafruit_matrixportal_m4.menu.debug.on.build.flags.debug=-g 
