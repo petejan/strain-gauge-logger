@@ -1648,7 +1648,7 @@ int cmd_reg1(char *line)
 	{
 	    sscanf(line, "%d", &new_reg1);
 
-		adc_reg1.write(debug);
+		adc_reg1.write(new_reg1);
 	}
 
 	new_reg1 = adc_reg1.read();
