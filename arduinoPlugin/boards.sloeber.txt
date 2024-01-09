@@ -72,6 +72,12 @@ adafruit_feather_m0.menu.opt.fastest.build.flags.optimize=-Ofast
 adafruit_feather_m0.menu.opt.dragons=Here be dragons (-Ofast -funroll-loops) 
 adafruit_feather_m0.menu.opt.dragons.build.flags.optimize=-Ofast -funroll-loops 
  
+ # Menu: Speed 
+adafruit_feather_m0.menu.speed.48=48 MHz (standard-USB) 
+adafruit_feather_m0.menu.speed.48.build.f_cpu=48000000L
+adafruit_feather_m0.menu.speed.8=8 MHz
+adafruit_feather_m0.menu.speed.8.build.f_cpu=8000000L 
+ 
 # Menu: USB Stack 
 adafruit_feather_m0.menu.usbstack.arduino=Arduino 
 adafruit_feather_m0.menu.usbstack.tinyusb=TinyUSB 
@@ -81,12 +87,6 @@ adafruit_feather_m0.menu.usbstack.tinyusb.build.flags.usbstack=-DUSE_TINYUSB
 adafruit_feather_m0.menu.debug.off=Off 
 adafruit_feather_m0.menu.debug.on=On 
 adafruit_feather_m0.menu.debug.on.build.flags.debug=-g 
-
-# Menu: Speed
-adafruit_feather_m0.menu.speed.48=48 MHz (standard)
-adafruit_feather_m0.menu.speed.8=8 MHz
-adafruit_feather_m0.menu.speed.48.build.f_cpu=48000000L
-adafruit_feather_m0.menu.speed.8.build.f_cpu=8000000L
  
  
 # ----------------------------------- 
@@ -448,13 +448,12 @@ adafruit_qtpy_m0.menu.usbstack.tinyusb.build.flags.usbstack=-DUSE_TINYUSB
 adafruit_qtpy_m0.menu.debug.off=Off 
 adafruit_qtpy_m0.menu.debug.on=On 
 adafruit_qtpy_m0.menu.debug.on.build.flags.debug=-g 
-
-# Menu: Speed
-adafruit_qtpt_m0.menu.speed.48=48 MHz (standard)
-adafruit_qtpy_m0.menu.speed.8=8 MHz (no pll)
-adafruit_qtpy_m0.menu.speed.48.build.f_cpu=48000000L
-adafruit_qtpy_m0.menu.speed.8.build.f_cpu=8000000L
  
+# Menu: Speed
+adafruit_qtpy_m0.menu.speed.48=48 MHz (standard)
+adafruit_qtpy_m0.menu.speed.48.build.f_cpu=48000000L
+adafruit_qtpy_m0.menu.speed.8=8 MHz (no PLL)
+adafruit_qtpy_m0.menu.speed.8.build.f_cpu=8000000L
  
 # ----------------------------------- 
 # Adafruit NeoPixel Trinkey M0 (SAMD21) 
