@@ -1005,6 +1005,9 @@ void setup()
 	//ZeroRegOptions opts = { SerialDEBUG, false };
 	//printZeroRegs(opts);
 
+	// switch EIC clock to GEN02 so it works in sleep mode
+    GCLK->CLKCTRL.reg = (uint16_t) (GCLK_CLKCTRL_CLKEN | GCLK_CLKCTRL_GEN_GCLK2 | GCLK_CLKCTRL_ID(GCM_EIC));
+
 }
 
 int line_idx = 0;
