@@ -499,6 +499,27 @@ void TC5_Handler (void)
 				waiting_for_sample = false;
 			}
 			adc_read_state = WAIT_PWR_TICK;
+			if (sampleRate.read() < 10)
+			{
+				adc_read_state = WAIT_ADC;
+
+				// i2c_master_adc_cmd(ADS122C04_RESET_CMD); // reset resets the sample count, reset only at startup
+
+				// setup the 4 config registers
+				i2c_master_adc_cmd_reg(ADS122C04_WRITE_CMD(ADS122C04_CONFIG_0_REG), channel_config_reg0[ch]);
+				i2c_master_adc_cmd_reg(ADS122C04_WRITE_CMD(ADS122C04_CONFIG_1_REG), adc_reg1.read());
+
+				i2c_master_adc_cmd_reg(ADS122C04_WRITE_CMD(ADS122C04_CONFIG_2_REG), ADS122C04_DCNT_ENABLE | ADS122C04_CRC_CRC16_ENABLED | ADS122C04_BURN_OUT_CURRENT_OFF | ADS122C04_IDAC_CURRENT_OFF);
+				i2c_master_adc_cmd_reg(ADS122C04_WRITE_CMD(ADS122C04_CONFIG_3_REG), ADS122C04_IDAC1_DISABLED | ADS122C04_IDAC2_DISABLED);
+
+				// start the sample
+				i2c_master_adc_cmd(ADS122C04_START_CMD);
+
+				// enable fall edge when ADC sample is ready
+				attachInterrupt(ADC_INT, adc_convert_isr, FALLING);
+
+				waiting_for_sample = true;
+			}
 
 			if (sample_write >= 0)
 			{
@@ -620,7 +641,7 @@ void tcConfigure(int sampleRate)
 
 	// use 2nd capture register to implement ADC power up delay
 	// TODO: for sample rates < 100ms probably don't want to power down the ADC, just sample
-	TC5->COUNT16.CC[1].reg = 10; // 10 ms power up delay
+	TC5->COUNT16.CC[1].reg = 3; // 3 ms power up delay
 	while (tcIsSyncing());
 
 	// Configure interrupt request
@@ -711,10 +732,13 @@ void adc_convert_isr(void)
 		{
 			ch = 0;
 
-			// disable this interrupt now, power off and go back to waiting for the next sample tick
+			// disable this interrupt now, and go back to waiting for the next sample tick
 			detachInterrupt(ADC_INT);
 
-			digitalWrite(ADC_PWR_PIN, 0);
+			if (sampleRate.read() >= 10)
+			{
+				digitalWrite(ADC_PWR_PIN, 0);
+			}
 		}
 
 	}
@@ -1520,7 +1544,7 @@ int cmd_sample(char *line)
 	{
 	    sscanf(line, "%d", &new_sampleRate);
 
-	    if (new_sampleRate >= 80)
+	    if (new_sampleRate >= 2)
 	    {
 			sampleRate.write(new_sampleRate);
 
@@ -1530,7 +1554,7 @@ int cmd_sample(char *line)
 	    }
 	    else
 	    {
-	    	SerialDEBUG.println("minimum sample rate is 80 ms");
+	    	SerialDEBUG.println("minimum sample rate is 2 ms");
 	    }
 	}
 
