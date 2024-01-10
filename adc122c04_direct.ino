@@ -32,7 +32,6 @@ int cmd_adc(char *line);
 int cmd_sample(char *line);
 int cmd_text(char *line);
 int cmd_file(char *line);
-int cmd_reg1(char *line);
 int cmd_format(char *line);
 int cmd_sync(char *line);
 
@@ -41,6 +40,9 @@ enum RUN_MODE {RUN_MODE_STOP, RUN_MODE_RUN, RUN_MODE_START_LATER};
 typedef struct {char txt[80];} char_80;
 
 FlashStorage(adc_reg1, uint8_t);
+FlashStorage(adc_reg2, uint8_t);
+FlashStorage(adc_reg3, uint8_t);
+
 FlashStorage(fcorr_set, uint8_t);
 FlashStorage(debug_set, uint8_t);
 FlashStorage(run_mode, RUN_MODE);
@@ -76,7 +78,6 @@ CMD cmds[] =
   {"samplerate", cmd_sample,     "display/set sample rate"},
   {"text",       cmd_text,       "display/set deployment text note"},
   {"file",       cmd_file,       "display/set file name %Y-%M-%DT%H%M.BIN"},
-  {"reg1",       cmd_reg1,       "display/set ADC reg1 - sets sample rate"},
   {"format",     cmd_format,     "format card 'format yes' to format"},
   {"sync",       cmd_sync,  	 "sync file"},
   {"help",       cmd_help,       "command help, this message"}
@@ -315,7 +316,7 @@ void rtc_int()
 enum STATE {ADC_STOP, WAIT_TICK, WAIT_PWR_TICK, WAIT_ADC, WAIT_RXDMA};
 volatile STATE adc_read_state;
 
-uint8_t ch = 0;
+uint8_t current_sample_channel = 0;
 /*
 const uint8_t channel_config_reg0[] = {ADS122C04_MUX_AIN0_AIN1 | ADS122C04_GAIN_1 | ADS122C04_PGA_ENABLED,
 									   ADS122C04_MUX_AIN2_AVSS | ADS122C04_GAIN_1 | ADS122C04_PGA_ENABLED,
@@ -473,12 +474,72 @@ bool run_sample = false;
 
 uint8_t *sample_write_addr;
 
-//this function gets called by the interrupt at <sampleRate> ms
-void TC5_Handler (void)
+void adc_setup(int ch)
+{
+	// i2c_master_adc_cmd(ADS122C04_RESET_CMD); // reset resets the sample count, reset only at startup
+
+	// setup the 4 config registers
+	i2c_master_adc_cmd_reg(ADS122C04_WRITE_CMD(ADS122C04_CONFIG_0_REG), channel_config_reg0[ch]);
+	i2c_master_adc_cmd_reg(ADS122C04_WRITE_CMD(ADS122C04_CONFIG_1_REG), adc_reg1.read());
+
+	i2c_master_adc_cmd_reg(ADS122C04_WRITE_CMD(ADS122C04_CONFIG_2_REG), adc_reg2.read());
+	i2c_master_adc_cmd_reg(ADS122C04_WRITE_CMD(ADS122C04_CONFIG_3_REG), adc_reg3.read());
+
+	// start the sample
+	i2c_master_adc_cmd(ADS122C04_START_CMD);
+}
+
+void get_next_sample_buf(void)
 {
 	uint16_t buf_len;
 	uint32_t rtc;
 
+	if (sample_write >= 0)
+	{
+		sample_write_addr = &data_buffer[sample_write];
+		memset(sample_write_addr, 0, 6); // clear buffer for next sample
+	}
+
+	if (sample_write <= 0) // first sample data is RTC, LEN
+	{
+		if (run_sample)
+		{
+			sample_write_addr = &data_buffer[0];
+
+			// first sample in block is RTC time
+			rtc = RTC->MODE2.CLOCK.reg; // REG is year/month/day/hour/min/sec
+			memcpy(sample_write_addr, &rtc, sizeof(rtc)); // copy to first 4 bytes
+			buf_len = sizeof(data_buffer);
+			memcpy(sample_write_addr+4, &buf_len, sizeof(buf_len)); // copy to length
+
+			sample_write = 6;
+			sample_write_addr = &data_buffer[sample_write];
+			memset(sample_write_addr, 1, 6); // clear buffer for next sample
+
+			current_sample_channel = 0; // always start a new block at channel 0
+		}
+		else
+		{
+			adc_read_state = ADC_STOP;
+
+			sample_write_addr = NULL;
+
+			sample_write = 0;
+		}
+	}
+	if (adc_read_state != ADC_STOP)
+	{
+		sample_write += 6;
+		if (sample_write >= sizeof(data_buffer))
+		{
+			sample_write = 0;
+		}
+	}
+
+}
+//this function gets called by the interrupt at <sampleRate> ms
+void TC5_Handler (void)
+{
 	// Overflow in count up mode every timer period
 	if (TC5->COUNT16.INTFLAG.bit.MC0)
 	{
@@ -503,17 +564,7 @@ void TC5_Handler (void)
 			{
 				adc_read_state = WAIT_ADC;
 
-				// i2c_master_adc_cmd(ADS122C04_RESET_CMD); // reset resets the sample count, reset only at startup
-
-				// setup the 4 config registers
-				i2c_master_adc_cmd_reg(ADS122C04_WRITE_CMD(ADS122C04_CONFIG_0_REG), channel_config_reg0[ch]);
-				i2c_master_adc_cmd_reg(ADS122C04_WRITE_CMD(ADS122C04_CONFIG_1_REG), adc_reg1.read());
-
-				i2c_master_adc_cmd_reg(ADS122C04_WRITE_CMD(ADS122C04_CONFIG_2_REG), ADS122C04_DCNT_ENABLE | ADS122C04_CRC_CRC16_ENABLED | ADS122C04_BURN_OUT_CURRENT_OFF | ADS122C04_IDAC_CURRENT_OFF);
-				i2c_master_adc_cmd_reg(ADS122C04_WRITE_CMD(ADS122C04_CONFIG_3_REG), ADS122C04_IDAC1_DISABLED | ADS122C04_IDAC2_DISABLED);
-
-				// start the sample
-				i2c_master_adc_cmd(ADS122C04_START_CMD);
+				adc_setup(current_sample_channel);
 
 				// enable fall edge when ADC sample is ready
 				attachInterrupt(ADC_INT, adc_convert_isr, FALLING);
@@ -521,47 +572,7 @@ void TC5_Handler (void)
 				waiting_for_sample = true;
 			}
 
-			if (sample_write >= 0)
-			{
-				sample_write_addr = &data_buffer[sample_write];
-				memset(sample_write_addr, 0, 6); // clear buffer for next sample
-			}
-
-			if (sample_write <= 0) // first sample data is RTC, LEN
-			{
-				if (run_sample)
-				{
-					sample_write_addr = &data_buffer[0];
-
-					// first sample in block is RTC time
-					rtc = RTC->MODE2.CLOCK.reg; // REG is year/month/day/hour/min/sec
-					memcpy(sample_write_addr, &rtc, sizeof(rtc)); // copy to first 4 bytes
-					buf_len = sizeof(data_buffer);
-					memcpy(sample_write_addr+4, &buf_len, sizeof(buf_len)); // copy to length
-
-					sample_write = 6;
-					sample_write_addr = &data_buffer[sample_write];
-					memset(sample_write_addr, 1, 6); // clear buffer for next sample
-
-					ch = 0; // always start a new block at channel 0
-				}
-				else
-				{
-					adc_read_state = ADC_STOP;
-
-					sample_write_addr = NULL;
-
-					sample_write = 0;
-				}
-			}
-			if (adc_read_state != ADC_STOP)
-			{
-				sample_write += 6;
-				if (sample_write >= sizeof(data_buffer))
-				{
-					sample_write = 0;
-				}
-			}
+			get_next_sample_buf();
 
 			if (adc_read_state == WAIT_PWR_TICK)
 			{
@@ -586,14 +597,7 @@ void TC5_Handler (void)
 			// i2c_master_adc_cmd(ADS122C04_RESET_CMD); // reset resets the sample count, reset only at startup
 
 			// setup the 4 config registers
-			i2c_master_adc_cmd_reg(ADS122C04_WRITE_CMD(ADS122C04_CONFIG_0_REG), channel_config_reg0[ch]);
-			i2c_master_adc_cmd_reg(ADS122C04_WRITE_CMD(ADS122C04_CONFIG_1_REG), adc_reg1.read());
-
-			i2c_master_adc_cmd_reg(ADS122C04_WRITE_CMD(ADS122C04_CONFIG_2_REG), ADS122C04_DCNT_ENABLE | ADS122C04_CRC_CRC16_ENABLED | ADS122C04_BURN_OUT_CURRENT_OFF | ADS122C04_IDAC_CURRENT_OFF);
-			i2c_master_adc_cmd_reg(ADS122C04_WRITE_CMD(ADS122C04_CONFIG_3_REG), ADS122C04_IDAC1_DISABLED | ADS122C04_IDAC2_DISABLED);
-
-			// start the sample
-			i2c_master_adc_cmd(ADS122C04_START_CMD);
+			adc_setup(current_sample_channel);
 
 			// enable fall edge when ADC sample is ready
 			attachInterrupt(ADC_INT, adc_convert_isr, FALLING);
@@ -636,7 +640,7 @@ void tcConfigure(int sampleRate)
 	//The counter will count up to this value (it's a 16bit counter so we use uint16_t)
 	//this is how we fine-tune the frequency, make it count to a lower or higher value
 	// clock is 32768/32 = 1024 Hz
-	TC5->COUNT16.CC[0].reg = (uint16_t) (((uint32_t)sampleRate * 1024ul) / 1000ul);
+	TC5->COUNT16.CC[0].reg = (uint16_t) (((uint32_t)(sampleRate - 1)* 1024ul) / 1000ul);
 	while (tcIsSyncing());
 
 	// use 2nd capture register to implement ADC power up delay
@@ -708,36 +712,40 @@ void adc_convert_isr(void)
 			i2c_master_adc_rdata(6, sample_write_addr);
 		}
 
-		adc_read_state = WAIT_TICK;
-
-		// select next channel next sample
-		ch ++;
-		if (channel_config_reg0[ch] != 0xff)
+		// check for continuous mode
+		if ((adc_reg1.read() & ADS122C04_CONVERSION_MODE_CONTINUOUS) != 0)
 		{
+			sample_ready = sample_write; // last sample is now ready to read
+
 			adc_read_state = WAIT_ADC;
-
-			//i2c_master_adc_cmd(ADS122C04_RESET_CMD); // reset resets the sample count, reset only at startup
-
-			// setup the 4 config registers
-			i2c_master_adc_cmd_reg(ADS122C04_WRITE_CMD(ADS122C04_CONFIG_0_REG), channel_config_reg0[ch]);
-			i2c_master_adc_cmd_reg(ADS122C04_WRITE_CMD(ADS122C04_CONFIG_1_REG), adc_reg1.read());
-
-			i2c_master_adc_cmd_reg(ADS122C04_WRITE_CMD(ADS122C04_CONFIG_2_REG), ADS122C04_DCNT_ENABLE | ADS122C04_CRC_CRC16_ENABLED | ADS122C04_BURN_OUT_CURRENT_OFF | ADS122C04_IDAC_CURRENT_OFF);
-			i2c_master_adc_cmd_reg(ADS122C04_WRITE_CMD(ADS122C04_CONFIG_3_REG), ADS122C04_IDAC1_DISABLED | ADS122C04_IDAC2_DISABLED);
-
-			// start the sample
-			i2c_master_adc_cmd(ADS122C04_START_CMD);
+			get_next_sample_buf();
 		}
 		else
 		{
-			ch = 0;
-
-			// disable this interrupt now, and go back to waiting for the next sample tick
-			detachInterrupt(ADC_INT);
-
-			if (sampleRate.read() >= 10)
+			// select next channel next sample
+			current_sample_channel ++;
+			if (channel_config_reg0[current_sample_channel] != 0xff)
 			{
-				digitalWrite(ADC_PWR_PIN, 0);
+				// sample next channel directly without waiting for the next tick
+				adc_read_state = WAIT_ADC;
+				get_next_sample_buf();
+
+				adc_setup(current_sample_channel);
+			}
+			else
+			{
+				current_sample_channel = 0;
+
+				adc_read_state = WAIT_TICK;
+
+				// disable this interrupt now, and go back to waiting for the next sample tick
+				detachInterrupt(ADC_INT);
+
+				// de-power the ADC at sample rates more that 10ms
+				if (sampleRate.read() >= 10)
+				{
+					digitalWrite(ADC_PWR_PIN, 0);
+				}
 			}
 		}
 
@@ -929,6 +937,9 @@ void setup()
 	if (adc_reg1.read() == 0)
 	{
 		adc_reg1.write(ADS122C04_DATA_RATE_20SPS | ADS122C04_OP_MODE_NORMAL | ADS122C04_CONVERSION_MODE_SINGLE_SHOT | ADS122C04_VREF_EXT_REF_PINS | ADS122C04_TEMP_SENSOR_OFF);
+
+		adc_reg2.write(ADS122C04_DCNT_ENABLE | ADS122C04_CRC_CRC16_ENABLED | ADS122C04_BURN_OUT_CURRENT_OFF | ADS122C04_IDAC_CURRENT_OFF);
+		adc_reg3.write(ADS122C04_IDAC1_DISABLED | ADS122C04_IDAC2_DISABLED);
 	}
 	SerialDEBUG.print(F("ADC REG1 : 0x"));
 	SerialDEBUG.println(adc_reg1.read(), HEX);
@@ -1257,6 +1268,54 @@ int cmd_regs(char *line)
 
 int cmd_adc(char *line)
 {
+	int new_reg1 = adc_reg1.read();
+	SerialDEBUG.print("adc_reg1 ");
+
+	if (line)
+	{
+	    sscanf(line, "%d", &new_reg1);
+
+		adc_reg1.write(new_reg1);
+	}
+
+	new_reg1 = adc_reg1.read();
+	SerialDEBUG.println(new_reg1);
+
+	SerialDEBUG.print(" Mode : ");
+	SerialDEBUG.println(new_reg1 & ADS122C04_OP_MODE_TURBO ? "Turbo" : "Normal");
+	SerialDEBUG.print(" CM : ");
+	SerialDEBUG.println(new_reg1 & ADS122C04_CONVERSION_MODE_CONTINUOUS ? "Continuous" : "Single");
+	SerialDEBUG.print(" VREF : ");
+	switch ((new_reg1 & 0x6) >> 1)
+	{
+		case 0:
+			SerialDEBUG.println("Internal");
+			break;
+		case 1:
+			SerialDEBUG.println("External");
+			break;
+		case 2:
+			SerialDEBUG.println("AVdd/AVss");
+			break;
+	}
+	// TODO: update for turbo mode rates (x2)
+	const int data_rate[] = {20, 45, 90, 175, 330, 600, 1000};
+	SerialDEBUG.print(" data rate : ");
+	SerialDEBUG.print(data_rate[(new_reg1 >> 5)]);
+	SerialDEBUG.println(" SPS");
+
+	SerialDEBUG.print(" Temp Sensor : ");
+	SerialDEBUG.println(new_reg1 & ADS122C04_TEMP_SENSOR_ON);
+
+	int new_reg2 = adc_reg2.read();
+	SerialDEBUG.print("adc_reg2 ");
+	SerialDEBUG.println(new_reg2);
+
+	int new_reg3 = adc_reg3.read();
+	SerialDEBUG.print("adc_reg3 ");
+	SerialDEBUG.println(new_reg3);
+
+	// Channels
 	int ad_ch = 0;
 	while (channel_config_reg0[ad_ch] != 0xff)
 	{
@@ -1663,50 +1722,6 @@ int cmd_file(char *line)
 	return 0;
 }
 
-int cmd_reg1(char *line)
-{
-	int new_reg1 = adc_reg1.read();
-	SerialDEBUG.print("adc_reg1 ");
-
-	if (line)
-	{
-	    sscanf(line, "%d", &new_reg1);
-
-		adc_reg1.write(new_reg1);
-	}
-
-	new_reg1 = adc_reg1.read();
-	SerialDEBUG.println(new_reg1);
-
-	SerialDEBUG.print(" Mode : ");
-	SerialDEBUG.println(new_reg1 & ADS122C04_OP_MODE_TURBO ? "Turbo" : "Normal");
-	SerialDEBUG.print(" CM : ");
-	SerialDEBUG.println(new_reg1 & ADS122C04_CONVERSION_MODE_CONTINUOUS ? "Continuous" : "Single");
-	SerialDEBUG.print(" VREF : ");
-	switch ((new_reg1 & 0x6) >> 1)
-	{
-		case 0:
-			SerialDEBUG.println("Internal");
-			break;
-		case 1:
-			SerialDEBUG.println("External");
-			break;
-		case 2:
-			SerialDEBUG.println("AVdd/AVss");
-			break;
-	}
-	// TODO: update for turbo mode rates (x2)
-	const int data_rate[] = {20, 45, 90, 175, 330, 600, 1000};
-	SerialDEBUG.print(" data rate : ");
-	SerialDEBUG.print(data_rate[(new_reg1 >> 5)]);
-	SerialDEBUG.println(" SPS");
-
-	SerialDEBUG.print(" Temp Sensor : ");
-	SerialDEBUG.println(new_reg1 & ADS122C04_TEMP_SENSOR_ON);
-
-	return 0;
-}
-
 SdCard* m_card = nullptr;
 
 int cmd_format(char *line)
@@ -1834,15 +1849,37 @@ void loop()
 				//delay(10);
 
 				SerialDEBUG.print("RUN_MODE: adc i2c channel set ");
-				SerialDEBUG.println(ch);
+				SerialDEBUG.println(current_sample_channel);
 
 				// TODO: Read ADC122c04 regs here to check setup
 
 				tcDisable();
-				tcConfigure(sampleRate.read()); //configure the timer to run at <sampleRate>Hertz
-				tcStartCounter(); //starts the timer
+				if ((adc_reg1.read() & ADS122C04_CONVERSION_MODE_CONTINUOUS) != 0)
+				{
+					SerialDEBUG.println("Continuous mode");
 
-				adc_read_state = WAIT_TICK;
+					digitalWrite(ADC_PWR_PIN, 1);
+					// enable fall edge when ADC sample is ready
+					attachInterrupt(ADC_INT, adc_convert_isr, FALLING);
+
+					waiting_for_sample = true;
+					delay(10);
+
+					adc_setup(0);
+					get_next_sample_buf();
+
+					adc_read_state = WAIT_ADC;
+
+				}
+				else
+				{
+					SerialDEBUG.println("Timer tick mode");
+
+					tcConfigure(sampleRate.read()); //configure the timer to run at <sampleRate>Hertz
+					tcStartCounter(); //starts the timer
+
+					adc_read_state = WAIT_TICK;
+				}
 
 			}
 			else
