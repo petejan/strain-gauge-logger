@@ -543,43 +543,48 @@ void TC5_Handler (void)
 	// Overflow in count up mode every timer period
 	if (TC5->COUNT16.INTFLAG.bit.MC0)
 	{
-		if (adc_read_state != ADC_STOP)
+		if ((adc_reg1.read() & ADS122C04_CONVERSION_MODE_CONTINUOUS) == 0)
 		{
-			sample_ready = sample_write; // last sample is now ready to read
-
-			// missed a tick or ADC did not sample
-			if (adc_read_state != WAIT_TICK)
+			if (adc_read_state != ADC_STOP)
 			{
+				sample_ready = sample_write; // last sample is now ready to read
+
+				// missed a tick or ADC did not sample
+				if (adc_read_state != WAIT_TICK)
+				{
 #ifdef ADAFRUIT_FEATHER_M0
-				digitalWrite(MISSED_SAMPLE_PIN, 0);
+					digitalWrite(MISSED_SAMPLE_PIN, 0);
 #endif
 
-				missed_sample = true;
-				missed_state = adc_read_state;
+					missed_sample = true;
+					missed_state = adc_read_state;
 
-				waiting_for_sample = false;
-			}
-			adc_read_state = WAIT_PWR_TICK;
-			if (sampleRate.read() < 10)
-			{
-				adc_read_state = WAIT_ADC;
+					waiting_for_sample = false;
+				}
+				adc_read_state = WAIT_PWR_TICK;
 
-				adc_setup(current_sample_channel);
+				// for sampling < 10ms don't power off the ADC, skip directly to sampling
+				if (sampleRate.read() < 10)
+				{
+					adc_read_state = WAIT_ADC;
 
-				// enable fall edge when ADC sample is ready
-				attachInterrupt(ADC_INT, adc_convert_isr, FALLING);
+					adc_setup(current_sample_channel);
 
-				waiting_for_sample = true;
-			}
+					// enable fall edge when ADC sample is ready
+					attachInterrupt(ADC_INT, adc_convert_isr, LOW);
 
-			get_next_sample_buf();
+					waiting_for_sample = true;
+				}
 
-			if (adc_read_state == WAIT_PWR_TICK)
-			{
-				digitalWrite(ADC_PWR_PIN, 1);
+				get_next_sample_buf();
+
+				if (adc_read_state == WAIT_PWR_TICK)
+				{
+					digitalWrite(ADC_PWR_PIN, 1);
 #ifdef ADAFRUIT_FEATHER_M0
-				digitalWrite(SAMPLE_PIN, 1);
+					digitalWrite(SAMPLE_PIN, 1);
 #endif
+				}
 			}
 		}
 		TC5->COUNT16.INTFLAG.bit.MC0 = 1; //Writing a 1 to INTFLAG.bit.MC0 clears the interrupt so that it will run again
@@ -600,10 +605,9 @@ void TC5_Handler (void)
 			adc_setup(current_sample_channel);
 
 			// enable fall edge when ADC sample is ready
-			attachInterrupt(ADC_INT, adc_convert_isr, FALLING);
+			attachInterrupt(ADC_INT, adc_convert_isr, LOW);
 
 			waiting_for_sample = true;
-
 		}
 
 		TC5->COUNT16.INTFLAG.bit.MC1 = 1; //Writing a 1 to INTFLAG.bit.MC1 clears the interrupt so that it will run again
@@ -615,9 +619,9 @@ void TC5_Handler (void)
  *  you shouldn't change these unless you know what you're doing
  */
 
-//Configures the TC to generate output events at the sample frequency.
-//Configures the TC in Frequency Generation mode, with an event output once
-//each time the audio sample frequency period expires.
+// Configures the TC to generate output events at the sample frequency.
+// Configures the TC in Frequency Generation mode, with an event output once
+// each time the sample frequency period expires.
 void tcConfigure(int sampleRate)
 {
 	// select the generic clock generator used as source to the generic clock multiplexer
@@ -634,7 +638,7 @@ void tcConfigure(int sampleRate)
 	//set prescaler
 	//the clock normally counts at the GCLK_TC frequency, but we can set it to divide that frequency to slow it down
 	//you can use different prescaler divisons here like TC_CTRLA_PRESCALER_DIV1 to get a different range
-	TC5->COUNT16.CTRLA.reg |= TC_CTRLA_PRESCALER_DIV1 | TC_CTRLA_ENABLE | TC_CTRLA_RUNSTDBY; //it will divide GCLK_TC frequency by 1024
+	TC5->COUNT16.CTRLA.reg |= TC_CTRLA_PRESCALER_DIV1 | TC_CTRLA_RUNSTDBY; //it will divide GCLK_TC frequency by 1
 	//TC5->COUNT16.CTRLA.reg |= TC_CTRLA_PRESCALER_DIV1024 | TC_CTRLA_ENABLE | TC_CTRLA_RUNSTDBY; //it will divide GCLK_TC frequency by 1024
 	//set the compare-capture register.
 	//The counter will count up to this value (it's a 16bit counter so we use uint16_t)
@@ -903,7 +907,7 @@ void setup()
 		sampleRate.write(150);
 	}
 
-	tcConfigure(sampleRate.read()); //configure the timer to run at <sampleRate>Hertz
+	// tcConfigure(sampleRate.read()); //configure the timer to run at <sampleRate>Hertz
 	// tcStartCounter(); //starts the timer
 
 	debug = debug_set.read();
@@ -1114,6 +1118,7 @@ void open_bin_file(char *new_name)
 	SerialDEBUG.print(F("file pos : "));
 	SerialDEBUG.println(binFile.position());
 
+	// write header to start of new file
 	if (binFile.isOpen() && (binFile.position() == 0))
 	{
 		write_hdr = true;
@@ -1860,7 +1865,7 @@ void loop()
 
 					digitalWrite(ADC_PWR_PIN, 1);
 					// enable fall edge when ADC sample is ready
-					attachInterrupt(ADC_INT, adc_convert_isr, FALLING);
+					attachInterrupt(ADC_INT, adc_convert_isr, LOW);
 
 					waiting_for_sample = true;
 					delay(10);
