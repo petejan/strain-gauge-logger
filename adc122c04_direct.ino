@@ -331,7 +331,7 @@ const uint8_t channel_config_reg0[] = {ADS122C04_MUX_AIN0_AIN1 | ADS122C04_GAIN_
 										0xff};
 */
 
-#define I2C_TIMEOUT 20
+#define I2C_TIMEOUT 20000
 
 volatile uint16_t i2c_timer;
 
@@ -340,6 +340,7 @@ int i2c_master_adc_cmd(uint8_t cmd)
 	/* Acknowledge section is set as ACK signal by writing 0 in ACKACT bit */
 	I2C_SERCOM->I2CM.CTRLB.reg &= ~SERCOM_I2CM_CTRLB_ACKACT;
 	while(I2C_SERCOM->I2CM.SYNCBUSY.bit.SYSOP);
+
 	/* slave address with Write(0) */
 	I2C_SERCOM->I2CM.ADDR.reg = (ADC122C04_ADDRESS << 1) | 0;
 
@@ -363,6 +364,7 @@ void i2c_master_adc_cmd_reg(uint8_t cmd, uint8_t reg)
 	/* Acknowledge section is set as ACK signal by writing 0 in ACKACT bit */
 	I2C_SERCOM->I2CM.CTRLB.reg &= ~SERCOM_I2CM_CTRLB_ACKACT;
 	while(I2C_SERCOM->I2CM.SYNCBUSY.bit.SYSOP);
+
 	/* slave address with Write(0) */
 	I2C_SERCOM->I2CM.ADDR.reg = (ADC122C04_ADDRESS << 1) | 0;
 
@@ -392,6 +394,7 @@ void i2c_master_adc_rdata(uint8_t len, uint8_t buf[])
 	/* Acknowledge section is set as ACK signal by writing 0 in ACKACT bit */
 	I2C_SERCOM->I2CM.CTRLB.reg &= ~SERCOM_I2CM_CTRLB_ACKACT;
 	while(I2C_SERCOM->I2CM.SYNCBUSY.bit.SYSOP);
+
 	/* slave address with Write(0) */
 	I2C_SERCOM->I2CM.ADDR.reg = (ADC122C04_ADDRESS << 1) | 0;
 
@@ -682,7 +685,11 @@ void i2c_master_init()
 	/* synchronization busy */
 	while(I2C_SERCOM->I2CM.SYNCBUSY.bit.SYSOP);
 	/* BAUDLOW is non-zero, and baud register is loaded */
+#if F_CPU == 48000000L
+	I2C_SERCOM->I2CM.BAUD.reg = SERCOM_I2CM_BAUD_BAUD(50) | SERCOM_I2CM_BAUD_BAUDLOW(0);
+#elif F_CPU == 8000000L
 	I2C_SERCOM->I2CM.BAUD.reg = SERCOM_I2CM_BAUD_BAUD(5) | SERCOM_I2CM_BAUD_BAUDLOW(0);
+#endif
 	/* synchronization busy */
 	while(I2C_SERCOM->I2CM.SYNCBUSY.bit.SYSOP);
 	/* I2C_SERCOM peripheral enabled by setting the ENABLE bit as 1*/
