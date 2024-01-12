@@ -330,6 +330,9 @@ const uint8_t channel_config_reg0[] = {ADS122C04_MUX_AIN0_AIN1 | ADS122C04_GAIN_
 const uint8_t channel_config_reg0[] = {ADS122C04_MUX_AIN0_AIN1 | ADS122C04_GAIN_1 | ADS122C04_PGA_ENABLED,
 										0xff};
 */
+
+#define I2C_TIMEOUT 20
+
 volatile uint16_t i2c_timer;
 
 int i2c_master_adc_cmd(uint8_t cmd)
@@ -340,13 +343,13 @@ int i2c_master_adc_cmd(uint8_t cmd)
 	/* slave address with Write(0) */
 	I2C_SERCOM->I2CM.ADDR.reg = (ADC122C04_ADDRESS << 1) | 0;
 
-	i2c_timer = 100;
+	i2c_timer = I2C_TIMEOUT;
 	while ((!I2C_SERCOM->I2CM.INTFLAG.bit.MB) && (i2c_timer > 0)) { i2c_timer--; };
 
 	I2C_SERCOM->I2CM.DATA.reg = cmd;
 	while(I2C_SERCOM->I2CM.SYNCBUSY.bit.SYSOP);
 
-	i2c_timer = 100;
+	i2c_timer = I2C_TIMEOUT;
 	while ((!I2C_SERCOM->I2CM.INTFLAG.bit.MB) && (i2c_timer > 0)) { i2c_timer--; };
 
 	I2C_SERCOM->I2CM.CTRLB.bit.CMD = 0x3;
@@ -363,19 +366,19 @@ void i2c_master_adc_cmd_reg(uint8_t cmd, uint8_t reg)
 	/* slave address with Write(0) */
 	I2C_SERCOM->I2CM.ADDR.reg = (ADC122C04_ADDRESS << 1) | 0;
 
-	i2c_timer = 100;
+	i2c_timer = I2C_TIMEOUT;
 	while ((!I2C_SERCOM->I2CM.INTFLAG.bit.MB) && (i2c_timer > 0)) { i2c_timer--; };
 
 	I2C_SERCOM->I2CM.DATA.reg = cmd;
 	while(I2C_SERCOM->I2CM.SYNCBUSY.bit.SYSOP);
 
-	i2c_timer = 100;
+	i2c_timer = I2C_TIMEOUT;
 	while ((!I2C_SERCOM->I2CM.INTFLAG.bit.MB) && (i2c_timer > 0)) { i2c_timer--; };
 
 	I2C_SERCOM->I2CM.DATA.reg = reg;
 	while(I2C_SERCOM->I2CM.SYNCBUSY.bit.SYSOP);
 
-	i2c_timer = 100;
+	i2c_timer = I2C_TIMEOUT;
 	while ((!I2C_SERCOM->I2CM.INTFLAG.bit.MB) && (i2c_timer > 0)) { i2c_timer--; };
 
 	I2C_SERCOM->I2CM.CTRLB.bit.CMD = 0x3;
@@ -392,13 +395,13 @@ void i2c_master_adc_rdata(uint8_t len, uint8_t buf[])
 	/* slave address with Write(0) */
 	I2C_SERCOM->I2CM.ADDR.reg = (ADC122C04_ADDRESS << 1) | 0;
 
-	i2c_timer = 100;
+	i2c_timer = I2C_TIMEOUT;
 	while ((!I2C_SERCOM->I2CM.INTFLAG.bit.MB) && (i2c_timer > 0)) { i2c_timer--; };
 
 	I2C_SERCOM->I2CM.DATA.reg = ADS122C04_RDATA_CMD;
 	while(I2C_SERCOM->I2CM.SYNCBUSY.bit.SYSOP);
 
-	i2c_timer = 100;
+	i2c_timer = I2C_TIMEOUT;
 	while ((!I2C_SERCOM->I2CM.INTFLAG.bit.MB) && (i2c_timer > 0)) { i2c_timer--; };
 
 	/* slave address with Read(1) */
@@ -407,7 +410,7 @@ void i2c_master_adc_rdata(uint8_t len, uint8_t buf[])
 	i = 0;
 	while (len > 0)
 	{
-		i2c_timer = 100;
+		i2c_timer = I2C_TIMEOUT;
 		while ((!I2C_SERCOM->I2CM.INTFLAG.bit.SB) && (i2c_timer > 0)) { i2c_timer--; };
 
 		buf[i] = I2C_SERCOM->I2CM.DATA.reg;
@@ -439,6 +442,10 @@ bool tcIsSyncing()
 //This function enables TC5 and waits for it to be ready
 void tcStartCounter()
 {
+	// Enable the TC5 interrupt request
+	TC5->COUNT16.INTENSET.reg = TC_INTENSET_MC0 | TC_INTENSET_MC1;
+	while (tcIsSyncing()); //wait until TC5 is done syncing
+
 	TC5->COUNT16.CTRLA.reg |= TC_CTRLA_ENABLE; //set the CTRLA register
 	while (tcIsSyncing()); //wait until snyc'd
 }
@@ -655,12 +662,8 @@ void tcConfigure(int sampleRate)
 	// Configure interrupt request
 	NVIC_DisableIRQ(TC5_IRQn);
 	NVIC_ClearPendingIRQ(TC5_IRQn);
-	NVIC_SetPriority(TC5_IRQn, 0);
+	NVIC_SetPriority(TC5_IRQn, 1);
 	NVIC_EnableIRQ(TC5_IRQn);
-
-	// Enable the TC5 interrupt request
-	TC5->COUNT16.INTENSET.reg = TC_INTENSET_MC0 | TC_INTENSET_MC1;
-	while (tcIsSyncing()); //wait until TC5 is done syncing
 }
 
 /* I2C master initialization */
@@ -1029,9 +1032,7 @@ void setup()
 		SerialDEBUG.println("could not open CONFIG.TXT file");
 	}
 
-
 	/* Sampling is started in main loop */
-
 	if ((run_mode.read() == RUN_MODE_RUN) || ((run_mode.read() == RUN_MODE_START_LATER) && (now >= datetime_start.read())))
 	{
 		run_sample = true;
@@ -1047,6 +1048,11 @@ void setup()
 	// switch EIC clock to GEN02 so it works in sleep mode
     GCLK->CLKCTRL.reg = (uint16_t) (GCLK_CLKCTRL_CLKEN | GCLK_CLKCTRL_GEN_GCLK2 | GCLK_CLKCTRL_ID(GCM_EIC));
 
+//    for (int i=0;i<PERIPH_COUNT_IRQn;i++)
+//    {
+//    	NVIC_SetPriority((enum IRQn)i, 1);
+//    }
+//    NVIC_SetPriority(EIC_IRQn, 0);
 }
 
 int line_idx = 0;
@@ -1870,8 +1876,8 @@ void loop()
 					waiting_for_sample = true;
 					delay(10);
 
-					adc_setup(0);
 					get_next_sample_buf();
+					adc_setup(0);
 
 					adc_read_state = WAIT_ADC;
 
@@ -2150,7 +2156,7 @@ void loop()
 	{
 		while (sample_read != sample_ready)
 		{
-			if (debug >= 1)
+			if (debug >= 2)
 			{
 				SerialDEBUG.print("sample @ ");
 				SerialDEBUG.print(sample_read);
@@ -2208,6 +2214,7 @@ void loop()
 		SysTick->CTRL &= ~SysTick_CTRL_TICKINT_Msk; // disable the sys tick, otherwise we get worken by it
 
 		LowPower.standby();
+		//LowPower.idle(IDLE_2);
 
 		SysTick->CTRL |= SysTick_CTRL_TICKINT_Msk; // re-enable, used by SdFAT
 
