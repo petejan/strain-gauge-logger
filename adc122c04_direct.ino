@@ -1335,7 +1335,12 @@ int cmd_adc(char *line)
 	// TODO: update for turbo mode rates (x2)
 	const int data_rate[] = {20, 45, 90, 175, 330, 600, 1000};
 	SerialDEBUG.print(" data rate : ");
-	SerialDEBUG.print(data_rate[(new_reg1 >> 5)]);
+	int dr = data_rate[(new_reg1 >> 5)];
+	if (new_reg1 & ADS122C04_OP_MODE_TURBO)
+	{
+		dr = dr * 2;
+	}
+	SerialDEBUG.print(dr);
 	SerialDEBUG.println(" SPS");
 
 	SerialDEBUG.print(" Temp Sensor : ");
@@ -1892,6 +1897,18 @@ void loop()
 				{
 					SerialDEBUG.println("Continuous mode");
 
+					int new_reg1 = adc_reg1.read();
+					const int data_rate[] = {20, 45, 90, 175, 330, 600, 1000};
+					int dr = data_rate[(new_reg1 >> 5)];
+					if (new_reg1 & ADS122C04_OP_MODE_TURBO)
+					{
+						dr = dr * 2;
+					}
+					float drf = 1000/dr;
+					SerialDEBUG.print("Data Rate : ");
+					SerialDEBUG.print(drf);
+					SerialDEBUG.println(" (ms)");
+
 					digitalWrite(ADC_PWR_PIN, 1);
 
 					waiting_for_sample = true;
@@ -2248,7 +2265,7 @@ void loop()
 		RTC->MODE2.READREQ.reg = RTC_READREQ_RREQ;
 	    while (RTC->MODE2.STATUS.bit.SYNCBUSY);
 
-	    uint32_t rtc_regs = RTC->MODE2.CLOCK.reg; // REG is year/month/day/hour/min/sec
+	    rtc_regs = RTC->MODE2.CLOCK.reg; // REG is year/month/day/hour/min/sec
 
 		//		if (adc_read_state == WAIT_TICK)
 //		{
