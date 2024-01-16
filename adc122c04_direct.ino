@@ -499,10 +499,11 @@ void adc_setup(int ch)
 	i2c_master_adc_cmd(ADS122C04_START_CMD);
 }
 
+uint32_t rtc_regs;
+
 void get_next_sample_buf(void)
 {
 	uint16_t buf_len;
-	uint32_t rtc;
 
 	if (sample_write >= 0)
 	{
@@ -514,11 +515,17 @@ void get_next_sample_buf(void)
 	{
 		if (run_sample)
 		{
-			sample_write_addr = &data_buffer[0];
+			sample_write = 0;
+			sample_write_addr = &data_buffer[sample_write];
 
-			// first sample in block is RTC time
-			rtc = RTC->MODE2.CLOCK.reg; // REG is year/month/day/hour/min/sec
-			memcpy(sample_write_addr, &rtc, sizeof(rtc)); // copy to first 4 bytes
+//			// first sample in block is RTC time
+
+			// RTC read blocks for 5 ms for sync due to different clock domains
+//		    RTC->MODE2.READREQ.reg = RTC_READREQ_RREQ;
+//		    while (RTC->MODE2.STATUS.bit.SYNCBUSY);
+//			rtc_regs = RTC->MODE2.CLOCK.reg; // REG is year/month/day/hour/min/sec
+
+			memcpy(sample_write_addr, &rtc_regs, sizeof(rtc_regs)); // copy to first 4 bytes
 			buf_len = sizeof(data_buffer);
 			memcpy(sample_write_addr+4, &buf_len, sizeof(buf_len)); // copy to length
 
@@ -713,8 +720,11 @@ uint8_t hdr[512];
 volatile bool adc_convert = false;
 void adc_convert_isr(void)
 {
-	uint32_t rtc;
 	uint16_t buf_len;
+
+#ifdef ADAFRUIT_FEATHER_M0
+	digitalWrite(SAMPLE_PIN, 1);
+#endif
 
 	if (adc_read_state == WAIT_ADC)
 	{
@@ -732,6 +742,7 @@ void adc_convert_isr(void)
 			sample_ready = sample_write; // last sample is now ready to read
 
 			adc_read_state = WAIT_ADC;
+
 			get_next_sample_buf();
 		}
 		else
@@ -765,6 +776,11 @@ void adc_convert_isr(void)
 
 	}
 	adc_convert = true;
+
+#ifdef ADAFRUIT_FEATHER_M0
+	digitalWrite(SAMPLE_PIN, 0);
+#endif
+
 }
 
 bool can_sleep = false;
@@ -840,7 +856,7 @@ void setup()
     // enable I2C_SERCOM sys clock
     GCLK->CLKCTRL.reg = (uint32_t)((GCLK_CLKCTRL_CLKEN | GCLK_CLKCTRL_GEN_GCLK0 | (SERCOM1_GCLK_ID_CORE << GCLK_CLKCTRL_ID_Pos)));
 #endif
-#ifdef ARDUINO_FEATHER_M0
+#ifdef ADAFRUIT_FEATHER_M0
 	/* implement IIC here, not using Wire library, as library is interrupt driven, and we use an interrupt to read/write I2C,
 	 * improves sample timing jitter.
 	 */
@@ -1827,7 +1843,7 @@ void loop()
     RTC->MODE2.READREQ.reg = RTC_READREQ_RREQ;
     while (RTC->MODE2.STATUS.bit.SYNCBUSY);
 
-    uint32_t rtc_regs = RTC->MODE2.CLOCK.reg; // REG is year/month/day/hour/min/sec
+    rtc_regs = RTC->MODE2.CLOCK.reg; // REG is year/month/day/hour/min/sec
     bool tick = false;
 
 	if (rtc_regs != last_rtc)
@@ -1877,14 +1893,17 @@ void loop()
 					SerialDEBUG.println("Continuous mode");
 
 					digitalWrite(ADC_PWR_PIN, 1);
-					// enable fall edge when ADC sample is ready
-					attachInterrupt(ADC_INT, adc_convert_isr, LOW);
 
 					waiting_for_sample = true;
 					delay(10);
 
 					get_next_sample_buf();
 					adc_setup(0);
+
+					i2c_master_adc_rdata(6, sample_write_addr); // clears the DRDY line
+
+					// enable fall edge when ADC sample is ready
+					attachInterrupt(ADC_INT, adc_convert_isr, LOW);
 
 					adc_read_state = WAIT_ADC;
 
@@ -2224,6 +2243,12 @@ void loop()
 		//LowPower.idle(IDLE_2);
 
 		SysTick->CTRL |= SysTick_CTRL_TICKINT_Msk; // re-enable, used by SdFAT
+
+		// read clock now we're awake
+		RTC->MODE2.READREQ.reg = RTC_READREQ_RREQ;
+	    while (RTC->MODE2.STATUS.bit.SYNCBUSY);
+
+	    uint32_t rtc_regs = RTC->MODE2.CLOCK.reg; // REG is year/month/day/hour/min/sec
 
 		//		if (adc_read_state == WAIT_TICK)
 //		{
