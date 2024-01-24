@@ -17,6 +17,7 @@
 #define SerialDEBUG SERIAL_PORT_HARDWARE
 
 int cmd_regs(char *line);
+int cmd_dma(char *line);
 int cmd_help(char *line);
 int cmd_time(char *line);
 int cmd_debug(char *line);
@@ -66,6 +67,7 @@ CMD cmds[] =
   {"adc",        cmd_adc,        "display/set adc <rate> <gain>"},
   {"time",       cmd_time,       "display/set time <YYYY-MM-DD hh:mm:ss>"},
   {"regs",       cmd_regs,       "display all SAMD21 regs"},
+  {"dma",        cmd_dma,        "display DMA regs"},
   {"sleep",      cmd_sleep,      "set can sleep"},
   {"fcorr",      cmd_fcorr,      "display/set fcorr reg"},
   {"debug",      cmd_debug,      "set debug level"},
@@ -306,7 +308,7 @@ void rtc_int()
  *   state ADC_STOP			: Stopped
  *         WAIT_TICK     	: enable ADC pwr
  *         WAIT_PWR_TICK    : send load CONFIG0 reg, sets channel and PGA
- *         WAIT_ADC 		: adc isr, sample finished, send ADS122C04_RDATA_CMD using TxDMA to ADC
+ *         WAIT_ADC 		: adc isr, sample finished, send ADS122C04__CMD using TxDMA to ADC
  *         WAIT_RXDMA       : RxDMA finished, send ADS122C04_CONFIG_0_REG using TxDMA to ADC, next state WAIT_TICK
  *
  * Sample Rate set by the Timer 5 tick
@@ -433,6 +435,154 @@ void i2c_master_adc_rdata(uint8_t len, uint8_t buf[])
 	while(I2C_SERCOM->I2CM.SYNCBUSY.bit.SYSOP);
 }
 
+Adafruit_ZeroDMA txDMA;
+Adafruit_ZeroDMA rxDMA;
+
+DmacDescriptor *tx_addr_desc;
+DmacDescriptor *rx_addr_desc;
+DmacDescriptor *tx_desc;
+DmacDescriptor *rx_desc;
+
+#define TX_DATA_LENGTH 3
+#define RX_DATA_LENGTH 6
+
+uint32_t tx_addr_memory;
+uint32_t rx_addr_memory;
+uint8_t tx_memory[TX_DATA_LENGTH];
+uint8_t rx_memory[RX_DATA_LENGTH];
+
+ZeroDMAstatus    dma_status; // DMA status codes returned by some functions
+
+static inline void i2c_master_dma_set_transfer_tx(uint16_t addr, uint8_t length)
+{
+	while (I2C_SERCOM->I2CM.STATUS.bit.BUSSTATE == 0x2);    					// Wait while the I2C bus is BUSY
+
+	tx_addr_memory =
+				SERCOM_I2CM_ADDR_ADDR(addr<<1) |
+				SERCOM_I2CM_ADDR_LENEN |
+				SERCOM_I2CM_ADDR_LEN(length) |
+				0;
+
+	txDMA.changeDescriptor(tx_addr_desc, &tx_addr_memory, (void *)(&I2C_SERCOM->I2CM.ADDR.reg), 1);
+
+	//SerialDEBUG.print("i2c_master_dma_set_transfer 0x");
+	//SerialDEBUG.println(addr_memory, HEX);
+}
+
+static inline void i2c_master_dma_set_transfer_rx(uint16_t addr, uint8_t length)
+{
+	while (I2C_SERCOM->I2CM.STATUS.bit.BUSSTATE == 0x2);    					// Wait while the I2C bus is BUSY
+
+	rx_addr_memory =
+				SERCOM_I2CM_ADDR_ADDR(addr<<1) |
+				SERCOM_I2CM_ADDR_LENEN |
+				SERCOM_I2CM_ADDR_LEN(length) |
+				1;
+
+	rxDMA.changeDescriptor(rx_addr_desc, &rx_addr_memory, (void *)(&I2C_SERCOM->I2CM.ADDR.reg), 1);
+
+	//SerialDEBUG.print("i2c_master_dma_set_transfer 0x");
+	//SerialDEBUG.println(addr_memory, HEX);
+}
+
+bool tx_transfer_is_done;
+bool rx_transfer_is_done;
+
+void i2c_write_cmd_dma_nowait(byte cmd)
+{
+	tx_memory[0] = cmd;
+
+	txDMA.changeDescriptor(tx_desc, tx_memory, (void *)(&I2C_SERCOM->I2CM.DATA.reg), 1);
+
+	tx_transfer_is_done = false;
+
+	i2c_master_dma_set_transfer_tx(ADC122C04_ADDRESS, 1);
+	dma_status = txDMA.startJob();
+
+	//txDMA.trigger();
+}
+
+
+void i2c_write_cmd_dma(byte cmd)
+{
+	while (I2C_SERCOM->I2CM.STATUS.bit.BUSSTATE == 0x2);    					// Wait while the I2C bus is BUSY
+
+	i2c_write_cmd_dma_nowait(cmd);
+	txDMA.trigger();
+
+	// need timeout here...
+	i2c_timer = I2C_TIMEOUT;
+	while(txDMA.isActive() && (i2c_timer > 0))
+	{
+		i2c_timer--;
+	}
+}
+
+void i2c_write_reg_dma_nowait(byte reg, byte value)
+{
+	tx_memory[0] = ADS122C04_WRITE_CMD(reg);
+	tx_memory[1] = value;
+
+	txDMA.changeDescriptor(tx_desc, tx_memory, (void *)(&I2C_SERCOM->I2CM.DATA.reg), 2);
+
+	tx_transfer_is_done = false;
+
+	i2c_master_dma_set_transfer_tx(ADC122C04_ADDRESS, 2);
+	dma_status = txDMA.startJob();
+
+	txDMA.trigger();
+}
+
+void i2c_write_reg_dma(byte reg, byte value)
+{
+	while (I2C_SERCOM->I2CM.STATUS.bit.BUSSTATE == 0x2);    					// Wait while the I2C bus is BUSY
+
+	SerialDEBUG.print("i2c_write_reg_dma ");
+	SerialDEBUG.print(reg);
+	SerialDEBUG.print(" value ");
+	SerialDEBUG.println(value, HEX);
+
+	i2c_write_reg_dma_nowait(reg, value);
+
+	// timeout here...
+	i2c_timer = I2C_TIMEOUT;
+	while(txDMA.isActive() && (i2c_timer > 0))
+	{
+		i2c_timer--;
+	}
+}
+
+void i2c_read_dma(uint8_t *data, byte len)
+{
+	rxDMA.changeDescriptor(rx_desc, (void *)(&I2C_SERCOM->I2CM.DATA.reg), data, len);
+
+	rx_transfer_is_done = false;
+
+	i2c_master_dma_set_transfer_rx(ADC122C04_ADDRESS, len);
+	dma_status = rxDMA.startJob();
+	rxDMA.trigger();
+
+	// timeout here...
+	i2c_timer = 100;
+	while(rxDMA.isActive() && (i2c_timer > 0))
+	{
+		i2c_timer--;
+	}
+}
+
+void i2c_read_dma_nowait(uint8_t *data, byte len)
+{
+	uint16_t buf_len;
+	uint32_t rtc;
+
+	rxDMA.changeDescriptor(rx_desc, (void *)(&I2C_SERCOM->I2CM.DATA.reg), data, len);
+
+	rx_transfer_is_done = false;
+
+	i2c_master_dma_set_transfer_rx(ADC122C04_ADDRESS, len);
+
+	dma_status = rxDMA.startJob();
+}
 
 
 //Function that is used to check if TC5 is done syncing
@@ -683,7 +833,7 @@ void i2c_master_init()
 	   By setting the SDAHOLD bit field as 0x0, SDA hold time disabled,
 	   I2C_SERCOM is configured as an I2C Master by writing the MODE bitfield as 0x5 */
 
-	I2C_SERCOM->I2CM.CTRLA.reg = SERCOM_I2CM_CTRLA_SPEED (0) |
+	I2C_SERCOM->I2CM.CTRLA.reg = SERCOM_I2CM_CTRLA_SPEED (1) |
 			SERCOM_I2CM_CTRLA_SDAHOLD(0x0) |
 			SERCOM_I2CM_CTRLA_MODE_I2C_MASTER;
 
@@ -693,9 +843,9 @@ void i2c_master_init()
 	while(I2C_SERCOM->I2CM.SYNCBUSY.bit.SYSOP);
 	/* BAUDLOW is non-zero, and baud register is loaded */
 #if F_CPU == 48000000L
-	I2C_SERCOM->I2CM.BAUD.reg = SERCOM_I2CM_BAUD_BAUD(50) | SERCOM_I2CM_BAUD_BAUDLOW(0);
+	I2C_SERCOM->I2CM.BAUD.reg = SERCOM_I2CM_BAUD_BAUD(SERCOM_FREQ_REF / (2 * 1000000) - 7) | SERCOM_I2CM_BAUD_BAUDLOW(0);
 #elif F_CPU == 8000000L
-	I2C_SERCOM->I2CM.BAUD.reg = SERCOM_I2CM_BAUD_BAUD(5) | SERCOM_I2CM_BAUD_BAUDLOW(0);
+	I2C_SERCOM->I2CM.BAUD.reg = SERCOM_I2CM_BAUD_BAUD(1) | SERCOM_I2CM_BAUD_BAUDLOW(0);
 #endif
 	/* synchronization busy */
 	while(I2C_SERCOM->I2CM.SYNCBUSY.bit.SYSOP);
@@ -733,7 +883,12 @@ void adc_convert_isr(void)
 		// read data from ADC, 6 bytes <count><data2><data1><data0><CRC><CRC>
 		if (sample_write_addr)
 		{
-			i2c_master_adc_rdata(6, sample_write_addr);
+			i2c_write_cmd_dma_nowait(ADS122C04_RDATA_CMD);
+			txDMA.trigger();
+
+			i2c_read_dma_nowait(sample_write_addr, 6);
+
+//			i2c_master_adc_rdata(6, sample_write_addr);
 		}
 
 		// check for continuous mode
@@ -809,6 +964,34 @@ char_80 file_name_template_mem;
 
 char line[80];
 file_t binFile;
+
+bool i2c_error_flag = false;
+void i2c_error(void)
+{
+
+	i2c_error_flag = true;
+}
+
+bool dma_error_flag = false;
+void dma_error(void)
+{
+
+	dma_error_flag = true;
+}
+
+bool dma_tx_flag = false;
+void dmatx(Adafruit_ZeroDMA *dma)
+{
+	dma_tx_flag = true;
+
+	rxDMA.trigger();
+}
+
+bool dma_rx_flag = false;
+void dmarx(Adafruit_ZeroDMA *dma)
+{
+	dma_rx_flag = true;
+}
 
 //The setup function is called once at startup of the sketch
 void setup()
@@ -1076,6 +1259,82 @@ void setup()
 //    	NVIC_SetPriority((enum IRQn)i, 1);
 //    }
 //    NVIC_SetPriority(EIC_IRQn, 0);
+
+    // Setup DMA channels
+
+	SerialDEBUG.print(F("Allocating tx DMA channel..."));
+	dma_status = txDMA.allocate();
+
+	//default I2C for arduino zero is on I2C_SERCOM
+	txDMA.setTrigger(SERCOM3_DMAC_ID_TX);
+	txDMA.setAction(DMA_TRIGGER_ACTON_BEAT);
+
+	txDMA.printStatus(dma_status);
+	uint8_t txch = txDMA.getChannel();
+	SerialDEBUG.print(txch);
+
+	SerialDEBUG.println(F(" Setting up tx transfer"));
+
+	tx_addr_desc = txDMA.addDescriptor
+		(
+		  &tx_addr_memory,                    // move data from here
+		  (void *)(&I2C_SERCOM->I2CM.ADDR.reg),// to here (M0)
+		  1,                      // this many...
+		  DMA_BEAT_SIZE_WORD,               // bytes/hword/words
+		  false,                             // increment source addr?
+		  false                             // increment dest addr?
+		);
+
+	tx_desc = txDMA.addDescriptor
+		(
+		  tx_memory,                    // move data from here
+		  (void *)(&I2C_SERCOM->I2CM.DATA.reg),// to here (M0)
+		  1,                      // this many...
+		  DMA_BEAT_SIZE_BYTE,               // bytes/hword/words
+		  true,                             // increment source addr?
+		  false                             // increment dest addr?
+		);
+
+	SerialDEBUG.println(F("Adding callback"));
+
+	// register_callback() can optionally take a second argument
+	// (callback type), default is DMA_CALLBACK_TRANSFER_DONE
+	txDMA.setCallback(dmatx);
+
+	SerialDEBUG.println(F("Setting up rx transfer"));
+
+	SerialDEBUG.print(F("Allocating rx DMA channel..."));
+	dma_status = rxDMA.allocate();
+	rxDMA.setTrigger(SERCOM3_DMAC_ID_RX);
+	rxDMA.setAction(DMA_TRIGGER_ACTON_BEAT);
+
+	rxDMA.printStatus(dma_status);
+
+	rx_addr_desc = rxDMA.addDescriptor
+		(
+		  &rx_addr_memory,                    // move data from here
+		  (void *)(&I2C_SERCOM->I2CM.ADDR.reg),// to here (M0)
+		  1,                      // this many...
+		  DMA_BEAT_SIZE_WORD,               // bytes/hword/words
+		  false,                             // increment source addr?
+		  false                             // increment dest addr?
+		);
+
+	rx_desc = rxDMA.addDescriptor
+		(
+		  (void *)(&I2C_SERCOM->I2CM.DATA.reg), // from here
+		  rx_memory,                            // to here
+		  6,                                    // this many...
+		  DMA_BEAT_SIZE_BYTE,                   // bytes/hword/words
+		  false,                                // increment source addr?
+		  true                                  // increment dest addr?
+		);
+
+	SerialDEBUG.println(F("Adding callback"));
+
+	// register_callback() can optionally take a second argument
+	// (callback type), default is DMA_CALLBACK_TRANSFER_DONE
+	rxDMA.setCallback(dmarx);
 }
 
 int line_idx = 0;
@@ -1273,7 +1532,7 @@ int executeCommand(char *line)
 		return (*c->cmd_handler)(tok);
 	}
 
-	Serial.println(F("Invalid command. Type \"help\" for more."));
+	SerialDEBUG.println(F("Invalid command. Type \"help\" for more."));
 
 	return 0;
 }
@@ -1296,6 +1555,14 @@ int cmd_regs(char *line)
 {
 	ZeroRegOptions opts = { SerialDEBUG, false };
 	printZeroRegs(opts);
+
+	return 0;
+}
+
+int cmd_dma(char *line)
+{
+	ZeroRegOptions opts = { SerialDEBUG, true };
+	printZeroRegDMAC(opts);
 
 	return 0;
 }
@@ -1917,7 +2184,7 @@ void loop()
 					get_next_sample_buf();
 					adc_setup(0);
 
-					i2c_master_adc_rdata(6, sample_write_addr); // clears the DRDY line
+					i2c_master_adc_cmd(ADS122C04_RDATA_CMD); // clears the DRDY line
 
 					// enable fall edge when ADC sample is ready
 					attachInterrupt(ADC_INT, adc_convert_isr, LOW);
@@ -1977,6 +2244,28 @@ void loop()
 			SerialDEBUG.println(" event_sys_flag");
 		}
 		event_sys_flag = false;
+	}
+	if (i2c_error_flag)
+	{
+		SerialDEBUG.println("i2c_error_flag");
+		i2c_error_flag = false;
+	}
+	if (dma_error_flag)
+	{
+		SerialDEBUG.println("dma_error_flag");
+		dma_error_flag = false;
+	}
+	if (dma_tx_flag)
+	{
+		if (debug >= 2)
+			SerialDEBUG.println("dma_tx_flag");
+		dma_tx_flag = false;
+	}
+	if (dma_rx_flag)
+	{
+		if (debug >= 2)
+			SerialDEBUG.println("dma_rx_flag : ");
+		dma_rx_flag = false;
 	}
 
 	if (rtc_alarm_flag)
