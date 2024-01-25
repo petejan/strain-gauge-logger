@@ -330,6 +330,9 @@ const uint8_t channel_config_reg0[] = {ADS122C04_MUX_AIN0_AIN1 | ADS122C04_GAIN_
 const uint8_t channel_config_reg0[] = {ADS122C04_MUX_AIN0_AIN1 | ADS122C04_GAIN_1 | ADS122C04_PGA_ENABLED,
 										0xff};
 */
+
+#define I2C_TIMEOUT 20000
+
 volatile uint16_t i2c_timer;
 
 int i2c_master_adc_cmd(uint8_t cmd)
@@ -337,16 +340,17 @@ int i2c_master_adc_cmd(uint8_t cmd)
 	/* Acknowledge section is set as ACK signal by writing 0 in ACKACT bit */
 	I2C_SERCOM->I2CM.CTRLB.reg &= ~SERCOM_I2CM_CTRLB_ACKACT;
 	while(I2C_SERCOM->I2CM.SYNCBUSY.bit.SYSOP);
+
 	/* slave address with Write(0) */
 	I2C_SERCOM->I2CM.ADDR.reg = (ADC122C04_ADDRESS << 1) | 0;
 
-	i2c_timer = 100;
+	i2c_timer = I2C_TIMEOUT;
 	while ((!I2C_SERCOM->I2CM.INTFLAG.bit.MB) && (i2c_timer > 0)) { i2c_timer--; };
 
 	I2C_SERCOM->I2CM.DATA.reg = cmd;
 	while(I2C_SERCOM->I2CM.SYNCBUSY.bit.SYSOP);
 
-	i2c_timer = 100;
+	i2c_timer = I2C_TIMEOUT;
 	while ((!I2C_SERCOM->I2CM.INTFLAG.bit.MB) && (i2c_timer > 0)) { i2c_timer--; };
 
 	I2C_SERCOM->I2CM.CTRLB.bit.CMD = 0x3;
@@ -360,22 +364,23 @@ void i2c_master_adc_cmd_reg(uint8_t cmd, uint8_t reg)
 	/* Acknowledge section is set as ACK signal by writing 0 in ACKACT bit */
 	I2C_SERCOM->I2CM.CTRLB.reg &= ~SERCOM_I2CM_CTRLB_ACKACT;
 	while(I2C_SERCOM->I2CM.SYNCBUSY.bit.SYSOP);
+
 	/* slave address with Write(0) */
 	I2C_SERCOM->I2CM.ADDR.reg = (ADC122C04_ADDRESS << 1) | 0;
 
-	i2c_timer = 100;
+	i2c_timer = I2C_TIMEOUT;
 	while ((!I2C_SERCOM->I2CM.INTFLAG.bit.MB) && (i2c_timer > 0)) { i2c_timer--; };
 
 	I2C_SERCOM->I2CM.DATA.reg = cmd;
 	while(I2C_SERCOM->I2CM.SYNCBUSY.bit.SYSOP);
 
-	i2c_timer = 100;
+	i2c_timer = I2C_TIMEOUT;
 	while ((!I2C_SERCOM->I2CM.INTFLAG.bit.MB) && (i2c_timer > 0)) { i2c_timer--; };
 
 	I2C_SERCOM->I2CM.DATA.reg = reg;
 	while(I2C_SERCOM->I2CM.SYNCBUSY.bit.SYSOP);
 
-	i2c_timer = 100;
+	i2c_timer = I2C_TIMEOUT;
 	while ((!I2C_SERCOM->I2CM.INTFLAG.bit.MB) && (i2c_timer > 0)) { i2c_timer--; };
 
 	I2C_SERCOM->I2CM.CTRLB.bit.CMD = 0x3;
@@ -389,16 +394,17 @@ void i2c_master_adc_rdata(uint8_t len, uint8_t buf[])
 	/* Acknowledge section is set as ACK signal by writing 0 in ACKACT bit */
 	I2C_SERCOM->I2CM.CTRLB.reg &= ~SERCOM_I2CM_CTRLB_ACKACT;
 	while(I2C_SERCOM->I2CM.SYNCBUSY.bit.SYSOP);
+
 	/* slave address with Write(0) */
 	I2C_SERCOM->I2CM.ADDR.reg = (ADC122C04_ADDRESS << 1) | 0;
 
-	i2c_timer = 100;
+	i2c_timer = I2C_TIMEOUT;
 	while ((!I2C_SERCOM->I2CM.INTFLAG.bit.MB) && (i2c_timer > 0)) { i2c_timer--; };
 
 	I2C_SERCOM->I2CM.DATA.reg = ADS122C04_RDATA_CMD;
 	while(I2C_SERCOM->I2CM.SYNCBUSY.bit.SYSOP);
 
-	i2c_timer = 100;
+	i2c_timer = I2C_TIMEOUT;
 	while ((!I2C_SERCOM->I2CM.INTFLAG.bit.MB) && (i2c_timer > 0)) { i2c_timer--; };
 
 	/* slave address with Read(1) */
@@ -407,7 +413,7 @@ void i2c_master_adc_rdata(uint8_t len, uint8_t buf[])
 	i = 0;
 	while (len > 0)
 	{
-		i2c_timer = 100;
+		i2c_timer = I2C_TIMEOUT;
 		while ((!I2C_SERCOM->I2CM.INTFLAG.bit.SB) && (i2c_timer > 0)) { i2c_timer--; };
 
 		buf[i] = I2C_SERCOM->I2CM.DATA.reg;
@@ -439,6 +445,10 @@ bool tcIsSyncing()
 //This function enables TC5 and waits for it to be ready
 void tcStartCounter()
 {
+	// Enable the TC5 interrupt request
+	TC5->COUNT16.INTENSET.reg = TC_INTENSET_MC0 | TC_INTENSET_MC1;
+	while (tcIsSyncing()); //wait until TC5 is done syncing
+
 	TC5->COUNT16.CTRLA.reg |= TC_CTRLA_ENABLE; //set the CTRLA register
 	while (tcIsSyncing()); //wait until snyc'd
 }
@@ -489,10 +499,11 @@ void adc_setup(int ch)
 	i2c_master_adc_cmd(ADS122C04_START_CMD);
 }
 
+uint32_t rtc_regs;
+
 void get_next_sample_buf(void)
 {
 	uint16_t buf_len;
-	uint32_t rtc;
 
 	if (sample_write >= 0)
 	{
@@ -504,11 +515,17 @@ void get_next_sample_buf(void)
 	{
 		if (run_sample)
 		{
-			sample_write_addr = &data_buffer[0];
+			sample_write = 0;
+			sample_write_addr = &data_buffer[sample_write];
 
-			// first sample in block is RTC time
-			rtc = RTC->MODE2.CLOCK.reg; // REG is year/month/day/hour/min/sec
-			memcpy(sample_write_addr, &rtc, sizeof(rtc)); // copy to first 4 bytes
+//			// first sample in block is RTC time
+
+			// RTC read blocks for 5 ms for sync due to different clock domains
+//		    RTC->MODE2.READREQ.reg = RTC_READREQ_RREQ;
+//		    while (RTC->MODE2.STATUS.bit.SYNCBUSY);
+//			rtc_regs = RTC->MODE2.CLOCK.reg; // REG is year/month/day/hour/min/sec
+
+			memcpy(sample_write_addr, &rtc_regs, sizeof(rtc_regs)); // copy to first 4 bytes
 			buf_len = sizeof(data_buffer);
 			memcpy(sample_write_addr+4, &buf_len, sizeof(buf_len)); // copy to length
 
@@ -655,12 +672,8 @@ void tcConfigure(int sampleRate)
 	// Configure interrupt request
 	NVIC_DisableIRQ(TC5_IRQn);
 	NVIC_ClearPendingIRQ(TC5_IRQn);
-	NVIC_SetPriority(TC5_IRQn, 0);
+	NVIC_SetPriority(TC5_IRQn, 1);
 	NVIC_EnableIRQ(TC5_IRQn);
-
-	// Enable the TC5 interrupt request
-	TC5->COUNT16.INTENSET.reg = TC_INTENSET_MC0 | TC_INTENSET_MC1;
-	while (tcIsSyncing()); //wait until TC5 is done syncing
 }
 
 /* I2C master initialization */
@@ -679,7 +692,11 @@ void i2c_master_init()
 	/* synchronization busy */
 	while(I2C_SERCOM->I2CM.SYNCBUSY.bit.SYSOP);
 	/* BAUDLOW is non-zero, and baud register is loaded */
+#if F_CPU == 48000000L
+	I2C_SERCOM->I2CM.BAUD.reg = SERCOM_I2CM_BAUD_BAUD(50) | SERCOM_I2CM_BAUD_BAUDLOW(0);
+#elif F_CPU == 8000000L
 	I2C_SERCOM->I2CM.BAUD.reg = SERCOM_I2CM_BAUD_BAUD(5) | SERCOM_I2CM_BAUD_BAUDLOW(0);
+#endif
 	/* synchronization busy */
 	while(I2C_SERCOM->I2CM.SYNCBUSY.bit.SYSOP);
 	/* I2C_SERCOM peripheral enabled by setting the ENABLE bit as 1*/
@@ -703,8 +720,11 @@ uint8_t hdr[512];
 volatile bool adc_convert = false;
 void adc_convert_isr(void)
 {
-	uint32_t rtc;
 	uint16_t buf_len;
+
+#ifdef ADAFRUIT_FEATHER_M0
+	digitalWrite(SAMPLE_PIN, 1);
+#endif
 
 	if (adc_read_state == WAIT_ADC)
 	{
@@ -722,6 +742,7 @@ void adc_convert_isr(void)
 			sample_ready = sample_write; // last sample is now ready to read
 
 			adc_read_state = WAIT_ADC;
+
 			get_next_sample_buf();
 		}
 		else
@@ -755,6 +776,11 @@ void adc_convert_isr(void)
 
 	}
 	adc_convert = true;
+
+#ifdef ADAFRUIT_FEATHER_M0
+	digitalWrite(SAMPLE_PIN, 0);
+#endif
+
 }
 
 bool can_sleep = false;
@@ -830,7 +856,7 @@ void setup()
     // enable I2C_SERCOM sys clock
     GCLK->CLKCTRL.reg = (uint32_t)((GCLK_CLKCTRL_CLKEN | GCLK_CLKCTRL_GEN_GCLK0 | (SERCOM1_GCLK_ID_CORE << GCLK_CLKCTRL_ID_Pos)));
 #endif
-#ifdef ARDUINO_FEATHER_M0
+#ifdef ADAFRUIT_FEATHER_M0
 	/* implement IIC here, not using Wire library, as library is interrupt driven, and we use an interrupt to read/write I2C,
 	 * improves sample timing jitter.
 	 */
@@ -1029,9 +1055,7 @@ void setup()
 		SerialDEBUG.println("could not open CONFIG.TXT file");
 	}
 
-
 	/* Sampling is started in main loop */
-
 	if ((run_mode.read() == RUN_MODE_RUN) || ((run_mode.read() == RUN_MODE_START_LATER) && (now >= datetime_start.read())))
 	{
 		run_sample = true;
@@ -1047,6 +1071,11 @@ void setup()
 	// switch EIC clock to GEN02 so it works in sleep mode
     GCLK->CLKCTRL.reg = (uint16_t) (GCLK_CLKCTRL_CLKEN | GCLK_CLKCTRL_GEN_GCLK2 | GCLK_CLKCTRL_ID(GCM_EIC));
 
+//    for (int i=0;i<PERIPH_COUNT_IRQn;i++)
+//    {
+//    	NVIC_SetPriority((enum IRQn)i, 1);
+//    }
+//    NVIC_SetPriority(EIC_IRQn, 0);
 }
 
 int line_idx = 0;
@@ -1306,7 +1335,12 @@ int cmd_adc(char *line)
 	// TODO: update for turbo mode rates (x2)
 	const int data_rate[] = {20, 45, 90, 175, 330, 600, 1000};
 	SerialDEBUG.print(" data rate : ");
-	SerialDEBUG.print(data_rate[(new_reg1 >> 5)]);
+	int dr = data_rate[(new_reg1 >> 5)];
+	if (new_reg1 & ADS122C04_OP_MODE_TURBO)
+	{
+		dr = dr * 2;
+	}
+	SerialDEBUG.print(dr);
 	SerialDEBUG.println(" SPS");
 
 	SerialDEBUG.print(" Temp Sensor : ");
@@ -1814,7 +1848,7 @@ void loop()
     RTC->MODE2.READREQ.reg = RTC_READREQ_RREQ;
     while (RTC->MODE2.STATUS.bit.SYNCBUSY);
 
-    uint32_t rtc_regs = RTC->MODE2.CLOCK.reg; // REG is year/month/day/hour/min/sec
+    rtc_regs = RTC->MODE2.CLOCK.reg; // REG is year/month/day/hour/min/sec
     bool tick = false;
 
 	if (rtc_regs != last_rtc)
@@ -1863,15 +1897,30 @@ void loop()
 				{
 					SerialDEBUG.println("Continuous mode");
 
+					int new_reg1 = adc_reg1.read();
+					const int data_rate[] = {20, 45, 90, 175, 330, 600, 1000};
+					int dr = data_rate[(new_reg1 >> 5)];
+					if (new_reg1 & ADS122C04_OP_MODE_TURBO)
+					{
+						dr = dr * 2;
+					}
+					float drf = 1000/dr;
+					SerialDEBUG.print("Data Rate : ");
+					SerialDEBUG.print(drf);
+					SerialDEBUG.println(" (ms)");
+
 					digitalWrite(ADC_PWR_PIN, 1);
-					// enable fall edge when ADC sample is ready
-					attachInterrupt(ADC_INT, adc_convert_isr, LOW);
 
 					waiting_for_sample = true;
 					delay(10);
 
-					adc_setup(0);
 					get_next_sample_buf();
+					adc_setup(0);
+
+					i2c_master_adc_rdata(6, sample_write_addr); // clears the DRDY line
+
+					// enable fall edge when ADC sample is ready
+					attachInterrupt(ADC_INT, adc_convert_isr, LOW);
 
 					adc_read_state = WAIT_ADC;
 
@@ -2150,7 +2199,7 @@ void loop()
 	{
 		while (sample_read != sample_ready)
 		{
-			if (debug >= 1)
+			if (debug >= 2)
 			{
 				SerialDEBUG.print("sample @ ");
 				SerialDEBUG.print(sample_read);
@@ -2208,8 +2257,15 @@ void loop()
 		SysTick->CTRL &= ~SysTick_CTRL_TICKINT_Msk; // disable the sys tick, otherwise we get worken by it
 
 		LowPower.standby();
+		//LowPower.idle(IDLE_2);
 
 		SysTick->CTRL |= SysTick_CTRL_TICKINT_Msk; // re-enable, used by SdFAT
+
+		// read clock now we're awake
+		RTC->MODE2.READREQ.reg = RTC_READREQ_RREQ;
+	    while (RTC->MODE2.STATUS.bit.SYNCBUSY);
+
+	    rtc_regs = RTC->MODE2.CLOCK.reg; // REG is year/month/day/hour/min/sec
 
 		//		if (adc_read_state == WAIT_TICK)
 //		{
