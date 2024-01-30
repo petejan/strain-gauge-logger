@@ -1474,8 +1474,13 @@ int cmd_starttime(char *line)
 	return 0;
 }
 
+time_t last_set_time;
+
 int cmd_time(char *line)
 {
+	struct tm t;
+	time_t now, set_time;
+
 	if (line)
 	{
 		SerialDEBUG.print(F("args : "));
@@ -1505,15 +1510,38 @@ int cmd_time(char *line)
 		SerialDEBUG.print(s, DEC);
 		SerialDEBUG.println();
 
+		now = rtc.getEpoch();
+
 		rtc.setSeconds(0); // to stop roll over
 
 		rtc.setDate(d, mnth, yr-2000);
 		rtc.setTime(h, m, s);
+
+		t.tm_isdst = -1;
+		t.tm_yday = 0;
+		t.tm_wday = 0;
+		t.tm_year = yr-2000+100;
+		t.tm_mon = mnth - 1;
+		t.tm_mday = d;
+		t.tm_hour = h;
+		t.tm_min = m;
+		t.tm_sec = s;
+
+		set_time = mktime(&t);
+		gmtime_r(&now, &t);
+
+		print_date(&t);
+
+		SerialDEBUG.print(" time difference = ");
+		SerialDEBUG.println(set_time - now);
+
+		SerialDEBUG.print("last set time = ");
+		SerialDEBUG.println(set_time - last_set_time, DEC);
+
+		last_set_time = set_time;
 	}
 
-	time_t now = rtc.getEpoch();
-
-	struct tm t;
+	now = rtc.getEpoch();
 	gmtime_r(&now, &t);
 
 	print_date(&t);
