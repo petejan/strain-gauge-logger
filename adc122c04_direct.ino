@@ -16,6 +16,8 @@
 //#define SerialDEBUG SERIAL_PORT_USBVIRTUAL
 #define SerialDEBUG SERIAL_PORT_HARDWARE
 
+#define BYTES_PER_SAMPLE 6
+
 int cmd_regs(char *line);
 int cmd_help(char *line);
 int cmd_time(char *line);
@@ -133,7 +135,7 @@ const uint8_t SD_CS_PIN = A3;
 #define SD_FAT_TYPE 1
 
 // Max SPI rate for AVR is 10 MHz for F_CPU 20 MHz, 8 MHz for F_CPU 16 MHz.
-#define SPI_CLOCK SD_SCK_MHZ(1)
+#define SPI_CLOCK SD_SCK_MHZ(4)
 
 #define SD_CONFIG SdSpiConfig(SD_CS_PIN, SHARED_SPI, SPI_CLOCK)
 
@@ -470,9 +472,9 @@ void tcDisable()
 
 volatile bool waiting_for_sample = false;
 volatile int16_t sample_write = -1;
-volatile int16_t sample_ready = -6;
-uint8_t data_buffer[512 * 6 * 2];
-//uint8_t data_buffer[32 * 6 * 2];
+volatile int16_t sample_ready = -BYTES_PER_SAMPLE;
+uint8_t data_buffer[512 * BYTES_PER_SAMPLE * 2];
+//uint8_t data_buffer[32 * BYTES_PER_SAMPLE * 2];
 
 time_t now;
 struct tm now_tm;
@@ -508,7 +510,7 @@ void get_next_sample_buf(void)
 	if (sample_write >= 0)
 	{
 		sample_write_addr = &data_buffer[sample_write];
-		memset(sample_write_addr, 0, 6); // clear buffer for next sample
+		memset(sample_write_addr, 0, BYTES_PER_SAMPLE); // clear buffer for next sample
 	}
 
 	if (sample_write <= 0) // first sample data is RTC, LEN
@@ -529,9 +531,9 @@ void get_next_sample_buf(void)
 			buf_len = sizeof(data_buffer);
 			memcpy(sample_write_addr+4, &buf_len, sizeof(buf_len)); // copy to length
 
-			sample_write = 6;
+			sample_write = BYTES_PER_SAMPLE;
 			sample_write_addr = &data_buffer[sample_write];
-			memset(sample_write_addr, 1, 6); // clear buffer for next sample
+			memset(sample_write_addr, 1, BYTES_PER_SAMPLE); // clear buffer for next sample
 
 			current_sample_channel = 0; // always start a new block at channel 0
 		}
@@ -546,7 +548,7 @@ void get_next_sample_buf(void)
 	}
 	if (adc_read_state != ADC_STOP)
 	{
-		sample_write += 6;
+		sample_write += BYTES_PER_SAMPLE;
 		if (sample_write >= sizeof(data_buffer))
 		{
 			sample_write = 0;
@@ -712,7 +714,7 @@ void i2c_master_init()
 uint8_t tx_buf[8];
 #define BUF_SIZE sizeof(tx_buf)
 
-volatile int16_t sample_read = -6;
+volatile int16_t sample_read = -BYTES_PER_SAMPLE;
 volatile int16_t sample_write_sd = -1;
 
 uint8_t hdr[512];
@@ -733,7 +735,7 @@ void adc_convert_isr(void)
 		// read data from ADC, 6 bytes <count><data2><data1><data0><CRC><CRC>
 		if (sample_write_addr)
 		{
-			i2c_master_adc_rdata(6, sample_write_addr);
+			i2c_master_adc_rdata(BYTES_PER_SAMPLE, sample_write_addr);
 		}
 
 		// check for continuous mode
@@ -968,7 +970,13 @@ void setup()
 	{
 		adc_reg1.write(ADS122C04_DATA_RATE_20SPS | ADS122C04_OP_MODE_NORMAL | ADS122C04_CONVERSION_MODE_SINGLE_SHOT | ADS122C04_VREF_EXT_REF_PINS | ADS122C04_TEMP_SENSOR_OFF);
 
+#if BYTES_PER_SAMPLE == 6
 		adc_reg2.write(ADS122C04_DCNT_ENABLE | ADS122C04_CRC_CRC16_ENABLED | ADS122C04_BURN_OUT_CURRENT_OFF | ADS122C04_IDAC_CURRENT_OFF);
+#elif BYTES_PER_SAMPLE == 5
+		adc_reg2.write(ADS122C04_CRC_CRC16_ENABLED | ADS122C04_BURN_OUT_CURRENT_OFF | ADS122C04_IDAC_CURRENT_OFF);
+#elif BYTES_PER_SAMPLE == 3
+		adc_reg2.write(ADS122C04_BURN_OUT_CURRENT_OFF | ADS122C04_IDAC_CURRENT_OFF);
+#endif
 		adc_reg3.write(ADS122C04_IDAC1_DISABLED | ADS122C04_IDAC2_DISABLED);
 	}
 	SerialDEBUG.print(F("ADC REG1 : 0x"));
@@ -1945,7 +1953,7 @@ void loop()
 					get_next_sample_buf();
 					adc_setup(0);
 
-					i2c_master_adc_rdata(6, sample_write_addr); // clears the DRDY line
+					i2c_master_adc_rdata(BYTES_PER_SAMPLE, sample_write_addr); // clears the DRDY line
 
 					// enable fall edge when ADC sample is ready
 					attachInterrupt(ADC_INT, adc_convert_isr, LOW);
@@ -2248,7 +2256,7 @@ void loop()
 				SerialDEBUG.println();
 			}
 
-			sample_read += 6;
+			sample_read += BYTES_PER_SAMPLE;
 			if (sample_read >= sizeof(data_buffer))
 			{
 				sample_read = 0;
