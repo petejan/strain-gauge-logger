@@ -16,7 +16,7 @@
 //#define SerialDEBUG SERIAL_PORT_USBVIRTUAL
 #define SerialDEBUG SERIAL_PORT_HARDWARE
 
-#define BYTES_PER_SAMPLE 6
+#define BYTES_PER_SAMPLE 3
 
 int cmd_regs(char *line);
 int cmd_help(char *line);
@@ -473,7 +473,9 @@ void tcDisable()
 volatile bool waiting_for_sample = false;
 volatile int16_t sample_write = -1;
 volatile int16_t sample_ready = -BYTES_PER_SAMPLE;
-uint8_t data_buffer[512 * BYTES_PER_SAMPLE * 2];
+
+//uint8_t data_buffer[512 * BYTES_PER_SAMPLE * 2];
+uint8_t data_buffer[512 * 6 * 2];
 //uint8_t data_buffer[32 * BYTES_PER_SAMPLE * 2];
 
 time_t now;
@@ -1201,11 +1203,12 @@ void open_bin_file(char *new_name)
 
 		memset(hdr, 0, sizeof(hdr));
 		p += sprintf(p, "adc122c04 " __DATE__ " " __TIME__ "\r\n");
-		p += sprintf(p, "sample rate %d (ms)\r\n", sampleRate.read());
-		p += sprintf(p, "ADC REG1 0x%02x\r\n", adc_reg1.read());
+		p += sprintf(p, "sample rate = %d (ms)\r\n", sampleRate.read());
+		p += sprintf(p, "bytes per sample = \r\n", BYTES_PER_SAMPLE);
+		p += sprintf(p, "ADC REG1 = 0x%02x\r\n", adc_reg1.read());
 		while (channel_config_reg0[ad_ch] != 0xff)
 		{
-			p += sprintf(p, "ADC Channel %2d : 0x%02x\r\n", ad_ch, channel_config_reg0[ad_ch]);
+			p += sprintf(p, "ADC Channel %2d = 0x%02x\r\n", ad_ch, channel_config_reg0[ad_ch]);
 
 			ad_ch++;
 		}
