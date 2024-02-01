@@ -29,16 +29,14 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/adc122c04_zeroDMA/libraries/FlashStorage/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/adc122c04_zeroDMA/libraries/SdFat/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/adc122c04_direct/libraries/Adafruit_Zero_DMA_Library}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/adc122c04_direct/libraries/FlashStorage/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/adc122c04_direct/libraries/RTCZero/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/adc122c04_direct/libraries/ZeroRegs/src}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/adc122c04_direct/libraries/Low-Power}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/adc122c04_direct/libraries/SPI}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/adc122c04_direct/libraries/SdFat/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/adc122c04_direct/core/core}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/adc122c04_direct/core/variant}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/adc122c04_direct/libraries/Adafruit_ZeroDMA/utility}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/adc122c04_direct/libraries/Adafruit_ZeroDMA}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/adc122c04_direct/libraries/Adafruit_Zero_DMA_Library/utility}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/adc122c04_direct/libraries/FlashStorage/src}&quot;"/>
 								</option>
 								<inputType id="io.sloeber.compiler.cpp.sketch.input.1531782753" name="CPP source files" superClass="io.sloeber.compiler.cpp.sketch.input"/>
 							</tool>
@@ -54,16 +52,14 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/adc122c04_zeroDMA/libraries/FlashStorage/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/adc122c04_zeroDMA/libraries/SdFat/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/adc122c04_direct/libraries/Adafruit_Zero_DMA_Library}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/adc122c04_direct/libraries/FlashStorage/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/adc122c04_direct/libraries/RTCZero/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/adc122c04_direct/libraries/ZeroRegs/src}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/adc122c04_direct/libraries/Low-Power}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/adc122c04_direct/libraries/SPI}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/adc122c04_direct/libraries/SdFat/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/adc122c04_direct/core/core}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/adc122c04_direct/core/variant}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/adc122c04_direct/libraries/Adafruit_ZeroDMA/utility}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/adc122c04_direct/libraries/Adafruit_ZeroDMA}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/adc122c04_direct/libraries/Adafruit_Zero_DMA_Library/utility}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/adc122c04_direct/libraries/FlashStorage/src}&quot;"/>
 								</option>
 								<inputType id="io.sloeber.compiler.c.sketch.input.1093368593" name="C Source Files" superClass="io.sloeber.compiler.c.sketch.input"/>
 							</tool>
@@ -79,16 +75,14 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/adc122c04_zeroDMA/libraries/FlashStorage/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/adc122c04_zeroDMA/libraries/SdFat/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/adc122c04_direct/libraries/Adafruit_Zero_DMA_Library}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/adc122c04_direct/libraries/FlashStorage/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/adc122c04_direct/libraries/RTCZero/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/adc122c04_direct/libraries/ZeroRegs/src}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/adc122c04_direct/libraries/Low-Power}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/adc122c04_direct/libraries/SPI}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/adc122c04_direct/libraries/SdFat/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/adc122c04_direct/core/core}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/adc122c04_direct/core/variant}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/adc122c04_direct/libraries/Adafruit_ZeroDMA/utility}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/adc122c04_direct/libraries/Adafruit_ZeroDMA}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/adc122c04_direct/libraries/Adafruit_Zero_DMA_Library/utility}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/adc122c04_direct/libraries/FlashStorage/src}&quot;"/>
 								</option>
 								<inputType id="io.sloeber.compiler.S.sketch.input.1413376664" name="Assembly source files" superClass="io.sloeber.compiler.S.sketch.input"/>
 							</tool>
