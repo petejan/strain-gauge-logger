@@ -16,6 +16,8 @@
 //#define SerialDEBUG SERIAL_PORT_USBVIRTUAL
 #define SerialDEBUG SERIAL_PORT_HARDWARE
 
+#define BYTES_PER_SAMPLE 3
+
 int cmd_regs(char *line);
 int cmd_dma(char *line);
 int cmd_help(char *line);
@@ -135,7 +137,7 @@ const uint8_t SD_CS_PIN = A3;
 #define SD_FAT_TYPE 1
 
 // Max SPI rate for AVR is 10 MHz for F_CPU 20 MHz, 8 MHz for F_CPU 16 MHz.
-#define SPI_CLOCK SD_SCK_MHZ(1)
+#define SPI_CLOCK SD_SCK_MHZ(4)
 
 #define SD_CONFIG SdSpiConfig(SD_CS_PIN, SHARED_SPI, SPI_CLOCK)
 
@@ -620,9 +622,11 @@ void tcDisable()
 
 volatile bool waiting_for_sample = false;
 volatile int16_t sample_write = -1;
-volatile int16_t sample_ready = -6;
+volatile int16_t sample_ready = -BYTES_PER_SAMPLE;
+
+//uint8_t data_buffer[512 * BYTES_PER_SAMPLE * 2];
 uint8_t data_buffer[512 * 6 * 2];
-//uint8_t data_buffer[32 * 6 * 2];
+//uint8_t data_buffer[32 * BYTES_PER_SAMPLE * 2];
 
 time_t now;
 struct tm now_tm;
@@ -658,7 +662,7 @@ void get_next_sample_buf(void)
 	if (sample_write >= 0)
 	{
 		sample_write_addr = &data_buffer[sample_write];
-		memset(sample_write_addr, 0, 6); // clear buffer for next sample
+		memset(sample_write_addr, 0, BYTES_PER_SAMPLE); // clear buffer for next sample
 	}
 
 	if (sample_write <= 0) // first sample data is RTC, LEN
@@ -679,9 +683,9 @@ void get_next_sample_buf(void)
 			buf_len = sizeof(data_buffer);
 			memcpy(sample_write_addr+4, &buf_len, sizeof(buf_len)); // copy to length
 
-			sample_write = 6;
+			sample_write = BYTES_PER_SAMPLE;
 			sample_write_addr = &data_buffer[sample_write];
-			memset(sample_write_addr, 1, 6); // clear buffer for next sample
+			memset(sample_write_addr, 1, BYTES_PER_SAMPLE); // clear buffer for next sample
 
 			current_sample_channel = 0; // always start a new block at channel 0
 		}
@@ -696,7 +700,7 @@ void get_next_sample_buf(void)
 	}
 	if (adc_read_state != ADC_STOP)
 	{
-		sample_write += 6;
+		sample_write += BYTES_PER_SAMPLE;
 		if (sample_write >= sizeof(data_buffer))
 		{
 			sample_write = 0;
@@ -862,7 +866,7 @@ void i2c_master_init()
 uint8_t tx_buf[8];
 #define BUF_SIZE sizeof(tx_buf)
 
-volatile int16_t sample_read = -6;
+volatile int16_t sample_read = -BYTES_PER_SAMPLE;
 volatile int16_t sample_write_sd = -1;
 
 uint8_t hdr[512];
@@ -1151,7 +1155,13 @@ void setup()
 	{
 		adc_reg1.write(ADS122C04_DATA_RATE_20SPS | ADS122C04_OP_MODE_NORMAL | ADS122C04_CONVERSION_MODE_SINGLE_SHOT | ADS122C04_VREF_EXT_REF_PINS | ADS122C04_TEMP_SENSOR_OFF);
 
+#if BYTES_PER_SAMPLE == 6
 		adc_reg2.write(ADS122C04_DCNT_ENABLE | ADS122C04_CRC_CRC16_ENABLED | ADS122C04_BURN_OUT_CURRENT_OFF | ADS122C04_IDAC_CURRENT_OFF);
+#elif BYTES_PER_SAMPLE == 5
+		adc_reg2.write(ADS122C04_CRC_CRC16_ENABLED | ADS122C04_BURN_OUT_CURRENT_OFF | ADS122C04_IDAC_CURRENT_OFF);
+#elif BYTES_PER_SAMPLE == 3
+		adc_reg2.write(ADS122C04_BURN_OUT_CURRENT_OFF | ADS122C04_IDAC_CURRENT_OFF);
+#endif
 		adc_reg3.write(ADS122C04_IDAC1_DISABLED | ADS122C04_IDAC2_DISABLED);
 	}
 	SerialDEBUG.print(F("ADC REG1 : 0x"));
@@ -1452,11 +1462,12 @@ void open_bin_file(char *new_name)
 
 		memset(hdr, 0, sizeof(hdr));
 		p += sprintf(p, "adc122c04 " __DATE__ " " __TIME__ "\r\n");
-		p += sprintf(p, "sample rate %d (ms)\r\n", sampleRate.read());
-		p += sprintf(p, "ADC REG1 0x%02x\r\n", adc_reg1.read());
+		p += sprintf(p, "sample rate = %d (ms)\r\n", sampleRate.read());
+		p += sprintf(p, "bytes per sample = \r\n", BYTES_PER_SAMPLE);
+		p += sprintf(p, "ADC REG1 = 0x%02x\r\n", adc_reg1.read());
 		while (channel_config_reg0[ad_ch] != 0xff)
 		{
-			p += sprintf(p, "ADC Channel %2d : 0x%02x\r\n", ad_ch, channel_config_reg0[ad_ch]);
+			p += sprintf(p, "ADC Channel %2d = 0x%02x\r\n", ad_ch, channel_config_reg0[ad_ch]);
 
 			ad_ch++;
 		}
@@ -1741,8 +1752,13 @@ int cmd_starttime(char *line)
 	return 0;
 }
 
+time_t last_set_time;
+
 int cmd_time(char *line)
 {
+	struct tm t;
+	time_t now, set_time;
+
 	if (line)
 	{
 		SerialDEBUG.print(F("args : "));
@@ -1772,15 +1788,38 @@ int cmd_time(char *line)
 		SerialDEBUG.print(s, DEC);
 		SerialDEBUG.println();
 
+		now = rtc.getEpoch();
+
 		rtc.setSeconds(0); // to stop roll over
 
 		rtc.setDate(d, mnth, yr-2000);
 		rtc.setTime(h, m, s);
+
+		t.tm_isdst = -1;
+		t.tm_yday = 0;
+		t.tm_wday = 0;
+		t.tm_year = yr-2000+100;
+		t.tm_mon = mnth - 1;
+		t.tm_mday = d;
+		t.tm_hour = h;
+		t.tm_min = m;
+		t.tm_sec = s;
+
+		set_time = mktime(&t);
+		gmtime_r(&now, &t);
+
+		print_date(&t);
+
+		SerialDEBUG.print(" time difference = ");
+		SerialDEBUG.println(set_time - now);
+
+		SerialDEBUG.print("last set time = ");
+		SerialDEBUG.println(set_time - last_set_time, DEC);
+
+		last_set_time = set_time;
 	}
 
-	time_t now = rtc.getEpoch();
-
-	struct tm t;
+	now = rtc.getEpoch();
 	gmtime_r(&now, &t);
 
 	print_date(&t);
@@ -2509,7 +2548,7 @@ void loop()
 				SerialDEBUG.println();
 			}
 
-			sample_read += 6;
+			sample_read += BYTES_PER_SAMPLE;
 			if (sample_read >= sizeof(data_buffer))
 			{
 				sample_read = 0;
