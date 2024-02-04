@@ -2,7 +2,7 @@
 //This is a automatic generated file
 //Please do not modify this file
 //If you touch this file your change will be overwritten during the next build
-//This file has been generated on 2023-12-18 10:56:51
+//This file has been generated on 2024-02-04 15:18:12
 
 #include "Arduino.h"
 #include "Arduino.h"
@@ -24,6 +24,8 @@ bool tcIsSyncing() ;
 void tcStartCounter() ;
 void tcReset() ;
 void tcDisable() ;
+void adc_setup(int ch) ;
+void get_next_sample_buf(void) ;
 void TC5_Handler (void) ;
 void tcConfigure(int sampleRate) ;
 void i2c_master_init() ;
@@ -52,7 +54,6 @@ int cmd_sample(char *line) ;
 int cmd_set(char *line) ;
 int cmd_text(char *line) ;
 int cmd_file(char *line) ;
-int cmd_reg1(char *line) ;
 int cmd_format(char *line) ;
 int cmd_sync(char *line) ;
 int read_line(char c) ;

@@ -1308,6 +1308,9 @@ int cmd_regs(char *line)
 	ZeroRegOptions opts = { SerialDEBUG, false };
 	printZeroRegs(opts);
 
+	//opts.showDisabled = true;
+	//printZeroRegDMAC(opts);
+
 	return 0;
 }
 

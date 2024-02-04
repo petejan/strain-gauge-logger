@@ -42,11 +42,6 @@
 			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/adafruit/hardware/samd/1.7.13/variants/feather_m0</locationURI>
 		</link>
 		<link>
-			<name>libraries/Adafruit_ZeroDMA</name>
-			<type>2</type>
-			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/adafruit/hardware/samd/1.7.13/libraries/Adafruit_ZeroDMA</locationURI>
-		</link>
-		<link>
 			<name>libraries/Adafruit_Zero_DMA_Library</name>
 			<type>2</type>
 			<locationURI>ECLIPSE_HOME/arduinoPlugin/libraries/Adafruit_Zero_DMA_Library/1.1.1</locationURI>
@@ -55,11 +50,6 @@
 			<name>libraries/FlashStorage</name>
 			<type>2</type>
 			<locationURI>ECLIPSE_HOME/arduinoPlugin/libraries/FlashStorage/1.0.0</locationURI>
-		</link>
-		<link>
-			<name>libraries/Low-Power</name>
-			<type>2</type>
-			<locationURI>ECLIPSE_HOME/arduinoPlugin/libraries/Low-Power/1.81.0</locationURI>
 		</link>
 		<link>
 			<name>libraries/RTCZero</name>
