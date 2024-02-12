@@ -601,6 +601,10 @@ void TC5_Handler (void)
 
 				if (adc_read_state == WAIT_PWR_TICK)
 				{
+					// Return the SDA pin back to I2C
+					PORT->Group[g_APinDescription[SCL].ulPort].PINCFG[g_APinDescription[SCL].ulPin].bit.PMUXEN = 1;
+					PORT->Group[g_APinDescription[SDA].ulPort].PINCFG[g_APinDescription[SDA].ulPin].bit.PMUXEN = 1;
+
 					digitalWrite(ADC_PWR_PIN, 1);
 #ifdef ADAFRUIT_FEATHER_M0
 					digitalWrite(SAMPLE_PIN, 1);
@@ -683,11 +687,15 @@ void tcConfigure(int sampleRate)
 /* I2C master initialization */
 void i2c_master_init()
 {
+	// Return the SDA pin back to I2C
+	PORT->Group[g_APinDescription[SCL].ulPort].PINCFG[g_APinDescription[SCL].ulPin].bit.PMUXEN = 1;
+	PORT->Group[g_APinDescription[SDA].ulPort].PINCFG[g_APinDescription[SDA].ulPin].bit.PMUXEN = 1;
+
 	/* By setting the SPEED bit field as 0x01, I2C Master runs at SM or FM,
 	   By setting the SDAHOLD bit field as 0x0, SDA hold time disabled,
 	   I2C_SERCOM is configured as an I2C Master by writing the MODE bitfield as 0x5 */
 
-	I2C_SERCOM->I2CM.CTRLA.reg = SERCOM_I2CM_CTRLA_SPEED (0) |
+	I2C_SERCOM->I2CM.CTRLA.reg = SERCOM_I2CM_CTRLA_SPEED (1) |
 			SERCOM_I2CM_CTRLA_SDAHOLD(0x0) |
 			SERCOM_I2CM_CTRLA_MODE_I2C_MASTER;
 
@@ -774,6 +782,10 @@ void adc_convert_isr(void)
 				if (sampleRate.read() >= 10)
 				{
 					digitalWrite(ADC_PWR_PIN, 0);
+
+					// Return the SDA pin back to GPIO
+					PORT->Group[g_APinDescription[SCL].ulPort].PINCFG[g_APinDescription[SCL].ulPin].bit.PMUXEN = 0;
+					PORT->Group[g_APinDescription[SDA].ulPort].PINCFG[g_APinDescription[SDA].ulPin].bit.PMUXEN = 0;
 				}
 			}
 		}
@@ -915,6 +927,11 @@ void setup()
 
 	pinMode(ADC_PWR_PIN, OUTPUT);
 	digitalWrite(ADC_PWR_PIN, 1); // start powered up
+
+	pinMode(PIN_WIRE_SDA, OUTPUT);
+	digitalWrite(PIN_WIRE_SDA, 1);
+	pinMode(PIN_WIRE_SCL, OUTPUT);
+	digitalWrite(PIN_WIRE_SCL, 1);
 
 	SerialDEBUG.print(F("SystemClock "));
 	SerialDEBUG.println(SystemCoreClock);
@@ -1204,7 +1221,7 @@ void open_bin_file(char *new_name)
 		memset(hdr, 0, sizeof(hdr));
 		p += sprintf(p, "adc122c04 " __DATE__ " " __TIME__ "\r\n");
 		p += sprintf(p, "sample rate = %d (ms)\r\n", sampleRate.read());
-		p += sprintf(p, "bytes per sample = \r\n", BYTES_PER_SAMPLE);
+		p += sprintf(p, "bytes per sample = %d\r\n", BYTES_PER_SAMPLE);
 		p += sprintf(p, "ADC REG1 = 0x%02x\r\n", adc_reg1.read());
 		while (channel_config_reg0[ad_ch] != 0xff)
 		{
