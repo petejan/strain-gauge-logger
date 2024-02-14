@@ -2313,6 +2313,8 @@ void loop()
 		digitalWrite(SLEEP_PIN, 1);
 #endif
 
+		//while(I2C_SERCOM->I2CM.STATUS.bit.BUSSTATE == 0x02); // Master on BUS, causes missed samples
+
 		SysTick->CTRL &= ~SysTick_CTRL_TICKINT_Msk; // disable the sys tick, otherwise we get worken by it
 
 		LowPower.standby();
