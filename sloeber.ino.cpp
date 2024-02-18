@@ -2,7 +2,7 @@
 //This is a automatic generated file
 //Please do not modify this file
 //If you touch this file your change will be overwritten during the next build
-//This file has been generated on 2024-02-04 15:18:12
+//This file has been generated on 2024-02-18 15:30:03
 
 #include "Arduino.h"
 #include "Arduino.h"
@@ -48,6 +48,7 @@ int cmd_starttime(char *line) ;
 int cmd_time(char *line) ;
 int cmd_ls(char *line) ;
 int cmd_debug(char *line) ;
+int cmd_burst(char *line) ;
 int cmd_sleep(char *line) ;
 int cmd_fcorr(char *line) ;
 int cmd_sample(char *line) ;
