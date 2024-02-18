@@ -141,6 +141,39 @@ const uint8_t SD_CS_PIN = A3;
 
 #define I2C_SERCOM SERCOM1
 #endif
+#ifdef ARDUINO_ITSYBITSY_M0
+
+const uint8_t ADC_INT = 7;
+const uint8_t ADC_PWR_PIN = 9;
+
+const uint8_t SD_CAR_DET_PIN = A2;
+
+// SD chip select pin.
+const uint8_t SD_CS_PIN = A3;
+
+//const uint8_t PIN_WRITE_LED = 8;
+//const uint8_t SAMPLE_PIN = 13;
+//const uint8_t SLEEP_PIN = 11;
+
+//const uint8_t MISSED_SAMPLE_PIN = A2;
+
+//const uint8_t LED_RED_PIN = 13;
+//const uint8_t LED_GREEN_PIN = 8;
+
+#define I2C_SERCOM SERCOM3
+
+//#include <Adafruit_DotStar.h>
+
+// There is only one pixel on the board
+#define NUMPIXELS 1
+
+//Use these pin definitions for the ItsyBitsy M4
+#define DATAPIN    (41u)
+#define CLOCKPIN   (40u)
+
+//Adafruit_DotStar strip(NUMPIXELS, DATAPIN, CLOCKPIN, DOTSTAR_BRG);
+
+#endif
 
 //------------------------------------------------------------------------------
 // Note: Uno will not support SD_FAT_TYPE = 3.
@@ -803,12 +836,12 @@ void adc_convert_isr(void)
 			}
 			else
 			{
+				current_sample_channel = 0;
+
 				burst--;
 				if (burst == 0)
 				{
 					burst = nburst.read();
-
-					current_sample_channel = 0;
 
 					adc_read_state = WAIT_TICK;
 
@@ -913,6 +946,12 @@ void setup()
 	PM->AHBMASK.bit.USB_ = 0; // disable USB clock
 	USB->DEVICE.CTRLA.reg &= ~(USB_CTRLA_RUNSTDBY | USB_CTRLA_ENABLE); // disable USB
 
+#ifdef ARDUINO_ITSYBITSY_M0
+    PM->APBCMASK.reg |= PM_APBCMASK_SERCOM3; // Switch on the I2C_SERCOM (I2C) clock
+
+    // enable I2C_SERCOM sys clock
+    GCLK->CLKCTRL.reg = (uint32_t)((GCLK_CLKCTRL_CLKEN | GCLK_CLKCTRL_GEN_GCLK0 | (SERCOM3_GCLK_ID_CORE << GCLK_CLKCTRL_ID_Pos)));
+#endif
 #ifdef ARDUINO_QTPY_M0
     PM->APBCMASK.reg |= PM_APBCMASK_SERCOM1; // Switch on the I2C_SERCOM (I2C) clock
 
@@ -958,6 +997,7 @@ void setup()
 	pinMode(ADC_INT, INPUT_PULLUP);
 
 	pinMode(SD_CS_PIN, OUTPUT);
+
 #ifdef ADAFRUIT_FEATHER_M0
 	pinMode(PIN_WRITE_LED, OUTPUT);
 	pinMode(SAMPLE_PIN, OUTPUT);
@@ -1058,6 +1098,7 @@ void setup()
 		SerialDEBUG.println("ERROR: ADC did not respond");
 	}
 
+#ifndef ADAFRUIT_ITSYBITSY_M0
 	/* setup the logging file */
 	file_name_template.read(&file_name_template_mem);
 
@@ -1133,6 +1174,7 @@ void setup()
 	{
 		SerialDEBUG.println("could not open CONFIG.TXT file");
 	}
+#endif
 
 	/* Sampling is started in main loop */
 	if ((run_mode.read() == RUN_MODE_RUN) || ((run_mode.read() == RUN_MODE_START_LATER) && (now >= datetime_start.read())))
@@ -2163,7 +2205,7 @@ void loop()
 
 		missed_sample = false;
 	}
-
+#ifndef ADAFRUIT_ITSYBITSY_M0
 	// deal with any card removal/insert
 	bool det = digitalRead(SD_CAR_DET_PIN);
 	if ((card_det_flag) || (last_card != det))
@@ -2197,6 +2239,7 @@ void loop()
 
 		last_card = det;
 	}
+#endif
 
 	// write data to card if we have filled more than 1/2 the buffer
 	int32_t to_write = (int32_t)sample_ready - (int32_t)sample_write_sd;
@@ -2271,6 +2314,7 @@ void loop()
 			SerialDEBUG.println(binFile.position());
 		}
 
+#ifndef ADAFRUIT_ITSYBITSY_M0
 		if (sample_write_sd <= 0) // only change file when sample number is zero
 		{
 			if (!binFile.isOpen())
@@ -2292,7 +2336,7 @@ void loop()
 
 			sample_write_sd = 0;
 		}
-
+#endif
 		// write data to file
 		if (binFile.isOpen())
 		{

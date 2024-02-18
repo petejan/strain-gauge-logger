@@ -40,8 +40,8 @@ adafruit_feather_m0.upload.tool=bossac18
 adafruit_feather_m0.upload.protocol=sam-ba 
 adafruit_feather_m0.upload.maximum_size=262144 
 adafruit_feather_m0.upload.offset=0x2000 
-adafruit_feather_m0.upload.use_1200bps_touch=true 
-adafruit_feather_m0.upload.wait_for_upload_port=true 
+adafruit_feather_m0.upload.use_1200bps_touch=false
+adafruit_feather_m0.upload.wait_for_upload_port=false
 adafruit_feather_m0.upload.native_usb=true 
  
 # Build 
@@ -72,12 +72,6 @@ adafruit_feather_m0.menu.opt.fastest.build.flags.optimize=-Ofast
 adafruit_feather_m0.menu.opt.dragons=Here be dragons (-Ofast -funroll-loops) 
 adafruit_feather_m0.menu.opt.dragons.build.flags.optimize=-Ofast -funroll-loops 
  
- # Menu: Speed 
-adafruit_feather_m0.menu.speed.48=48 MHz (standard-USB) 
-adafruit_feather_m0.menu.speed.48.build.f_cpu=48000000L
-adafruit_feather_m0.menu.speed.8=8 MHz
-adafruit_feather_m0.menu.speed.8.build.f_cpu=8000000L 
- 
 # Menu: USB Stack 
 adafruit_feather_m0.menu.usbstack.arduino=Arduino 
 adafruit_feather_m0.menu.usbstack.tinyusb=TinyUSB 
@@ -87,6 +81,12 @@ adafruit_feather_m0.menu.usbstack.tinyusb.build.flags.usbstack=-DUSE_TINYUSB
 adafruit_feather_m0.menu.debug.off=Off 
 adafruit_feather_m0.menu.debug.on=On 
 adafruit_feather_m0.menu.debug.on.build.flags.debug=-g 
+
+# Menu: Speed
+adafruit_feather_m0.menu.speed.48=48 MHz (standard)
+adafruit_feather_m0.menu.speed.8=8 MHz
+adafruit_feather_m0.menu.speed.48.build.f_cpu=48000000L
+adafruit_feather_m0.menu.speed.8.build.f_cpu=8000000L
  
  
 # ----------------------------------- 
@@ -448,12 +448,13 @@ adafruit_qtpy_m0.menu.usbstack.tinyusb.build.flags.usbstack=-DUSE_TINYUSB
 adafruit_qtpy_m0.menu.debug.off=Off 
 adafruit_qtpy_m0.menu.debug.on=On 
 adafruit_qtpy_m0.menu.debug.on.build.flags.debug=-g 
- 
+
 # Menu: Speed
-adafruit_qtpy_m0.menu.speed.48=48 MHz (standard)
+adafruit_qtpt_m0.menu.speed.48=48 MHz (standard)
+adafruit_qtpy_m0.menu.speed.8=8 MHz (no pll)
 adafruit_qtpy_m0.menu.speed.48.build.f_cpu=48000000L
-adafruit_qtpy_m0.menu.speed.8=8 MHz (no PLL)
 adafruit_qtpy_m0.menu.speed.8.build.f_cpu=8000000L
+ 
  
 # ----------------------------------- 
 # Adafruit NeoPixel Trinkey M0 (SAMD21) 
@@ -783,13 +784,12 @@ adafruit_itsybitsy_m0.upload.tool=bossac18
 adafruit_itsybitsy_m0.upload.protocol=sam-ba 
 adafruit_itsybitsy_m0.upload.maximum_size=262144 
 adafruit_itsybitsy_m0.upload.offset=0x2000 
-adafruit_itsybitsy_m0.upload.use_1200bps_touch=true 
-adafruit_itsybitsy_m0.upload.wait_for_upload_port=true 
+adafruit_itsybitsy_m0.upload.use_1200bps_touch=false
+adafruit_itsybitsy_m0.upload.wait_for_upload_port=false
 adafruit_itsybitsy_m0.upload.native_usb=true 
  
 # Build 
 adafruit_itsybitsy_m0.build.mcu=cortex-m0plus 
-adafruit_itsybitsy_m0.build.f_cpu=48000000L 
 adafruit_itsybitsy_m0.build.usb_product=ItsyBitsy M0 Express 
 adafruit_itsybitsy_m0.build.usb_manufacturer=Adafruit 
 adafruit_itsybitsy_m0.build.board=ITSYBITSY_M0 
@@ -825,6 +825,12 @@ adafruit_itsybitsy_m0.menu.usbstack.tinyusb.build.flags.usbstack=-DUSE_TINYUSB
 adafruit_itsybitsy_m0.menu.debug.off=Off 
 adafruit_itsybitsy_m0.menu.debug.on=On 
 adafruit_itsybitsy_m0.menu.debug.on.build.flags.debug=-g 
+ 
+# Menu: Speed
+adafruit_itsybitsy_m0.menu.speed.48=48 MHz (standard)
+adafruit_itsybitsy_m0.menu.speed.8=8 MHz (no pll)
+adafruit_itsybitsy_m0.menu.speed.48.build.f_cpu=48000000L
+adafruit_itsybitsy_m0.menu.speed.8.build.f_cpu=8000000L
  
  
 # ----------------------------------- 
