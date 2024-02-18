@@ -772,6 +772,22 @@ void adc_convert_isr(void)
 			adc_read_state = WAIT_ADC;
 
 			get_next_sample_buf();
+
+			if (burst > 0)
+			{
+				burst--;
+				if (burst == 0)
+				{
+					burst = nburst.read();
+					adc_read_state = WAIT_TICK;
+
+					// disable this interrupt now, and go back to waiting for the next sample tick
+					detachInterrupt(ADC_INT);
+
+					// start the sample
+					i2c_master_adc_cmd(ADS122C04_POWERDOWN_CMD);
+				}
+			}
 		}
 		else
 		{
@@ -790,6 +806,8 @@ void adc_convert_isr(void)
 				burst--;
 				if (burst == 0)
 				{
+					burst = nburst.read();
+
 					current_sample_channel = 0;
 
 					adc_read_state = WAIT_TICK;
@@ -2007,6 +2025,8 @@ void loop()
 				// TODO: Read ADC122c04 regs here to check setup
 
 				tcDisable();
+				burst = nburst.read();
+
 				if ((adc_reg1.read() & ADS122C04_CONVERSION_MODE_CONTINUOUS) != 0)
 				{
 					SerialDEBUG.println("Continuous mode");
@@ -2033,10 +2053,22 @@ void loop()
 
 					i2c_master_adc_rdata(BYTES_PER_SAMPLE, sample_write_addr); // clears the DRDY line
 
-					// enable fall edge when ADC sample is ready
-					attachInterrupt(ADC_INT, adc_convert_isr, LOW);
+					if (burst <= 0)
+					{
+						// enable fall edge when ADC sample is ready
+						attachInterrupt(ADC_INT, adc_convert_isr, LOW);
 
-					adc_read_state = WAIT_ADC;
+						adc_read_state = WAIT_ADC;
+					}
+					else
+					{
+						SerialDEBUG.println("burst mode");
+
+						tcConfigure(sampleRate.read()); //configure the timer to run at <sampleRate>Hertz
+						tcStartCounter(); //starts the timer
+
+						adc_read_state = WAIT_TICK;
+					}
 
 				}
 				else
