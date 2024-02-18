@@ -16,7 +16,7 @@
 //#define SerialDEBUG SERIAL_PORT_USBVIRTUAL
 #define SerialDEBUG SERIAL_PORT_HARDWARE
 
-#define BYTES_PER_SAMPLE 3
+#define BYTES_PER_SAMPLE 6
 
 int cmd_regs(char *line);
 int cmd_help(char *line);
@@ -36,6 +36,7 @@ int cmd_text(char *line);
 int cmd_file(char *line);
 int cmd_format(char *line);
 int cmd_sync(char *line);
+int cmd_burst(char *line);
 
 enum RUN_MODE {RUN_MODE_STOP, RUN_MODE_RUN, RUN_MODE_START_LATER};
 
@@ -52,6 +53,7 @@ FlashStorage(datetime_start, uint32_t);
 FlashStorage(sampleRate, uint32_t);
 FlashStorage(deployment_text, char_80);
 FlashStorage(file_name_template, char_80);
+FlashStorage(nburst, uint16_t);
 
 
 typedef struct
@@ -65,24 +67,36 @@ void * findCommand(char * command);
 
 CMD cmds[] =
 {
-  {"adc",        cmd_adc,        "display/set adc <rate> <gain>"},
-  {"time",       cmd_time,       "display/set time <YYYY-MM-DD hh:mm:ss>"},
-  {"regs",       cmd_regs,       "display all SAMD21 regs"},
-  {"sleep",      cmd_sleep,      "set can sleep"},
-  {"fcorr",      cmd_fcorr,      "display/set fcorr reg"},
-  {"debug",      cmd_debug,      "set debug level"},
-  {"ls",         cmd_ls,         "display card file list"},
-  {"startnow",   cmd_start,      "start sampling now"},
-  {"stop",       cmd_stop,       "start stop sampling"},
-  {"starttime",  cmd_starttime,  "set/display start time"},
-  {"startlater", cmd_startlater, "start sampling at starttime"},
-  {"set",        cmd_set,        "display settings"},
-  {"samplerate", cmd_sample,     "display/set sample rate"},
-  {"text",       cmd_text,       "display/set deployment text note"},
-  {"file",       cmd_file,       "display/set file name %Y-%M-%DT%H%M.BIN"},
-  {"format",     cmd_format,     "format card 'format yes' to format"},
-  {"sync",       cmd_sync,  	 "sync file"},
-  {"help",       cmd_help,       "command help, this message"}
+		  {"---",        NULL,         "setup commands"},
+		  {"time",       cmd_time,       "display/set time <YYYY-MM-DD hh:mm:ss>"},
+		  {"fcorr",      cmd_fcorr,      "display/set fcorr reg"},
+		  {"adc",        cmd_adc,        "display/set adc <rate> <gain>"},
+		  {"nburst",     cmd_burst,      "number of samples to burst sample"},
+		  {"samplerate", cmd_sample,     "display/set sample rate"},
+
+		  {"text",       cmd_text,       "display/set deployment text note"},
+
+		  {"---",        NULL,         "start/stop commands"},
+		  {"startnow",   cmd_start,      "start sampling now"},
+		  {"starttime",  cmd_starttime,  "set/display start time"},
+		  {"startlater", cmd_startlater, "start sampling at starttime"},
+		  {"stop",       cmd_stop,       "start stop sampling"},
+
+		  {"set",        cmd_set,        "display settings"},
+
+		  {"---",        NULL,         "debug commands"},
+		  {"sleep",      cmd_sleep,      "set can sleep"},
+		  {"debug",      cmd_debug,      "set debug level"},
+		  {"regs",       cmd_regs,       "display all SAMD21 regs"},
+
+		  {"---",        NULL,         "file commands"},
+		  {"ls",         cmd_ls,         "display card file list"},
+		  {"file",       cmd_file,       "display/set file name %Y-%M-%DT%H%M.BIN"},
+		  {"format",     cmd_format,     "format card 'format yes' to format"},
+		  {"sync",       cmd_sync,  	 "sync file"},
+
+		  {"---",        NULL,         "help"},
+		  {"help",       cmd_help,       "command help, this message"}
 };
 
 /* Create an rtc object */
@@ -317,6 +331,8 @@ void rtc_int()
 
 enum STATE {ADC_STOP, WAIT_TICK, WAIT_PWR_TICK, WAIT_ADC, WAIT_RXDMA};
 volatile STATE adc_read_state;
+
+int16_t burst;
 
 uint8_t current_sample_channel = 0;
 /*
@@ -771,21 +787,34 @@ void adc_convert_isr(void)
 			}
 			else
 			{
-				current_sample_channel = 0;
-
-				adc_read_state = WAIT_TICK;
-
-				// disable this interrupt now, and go back to waiting for the next sample tick
-				detachInterrupt(ADC_INT);
-
-				// de-power the ADC at sample rates more that 10ms
-				if (sampleRate.read() >= 10)
+				burst--;
+				if (burst == 0)
 				{
-					digitalWrite(ADC_PWR_PIN, 0);
+					current_sample_channel = 0;
 
-					// Return the SDA pin back to GPIO
-					PORT->Group[g_APinDescription[SCL].ulPort].PINCFG[g_APinDescription[SCL].ulPin].bit.PMUXEN = 0;
-					PORT->Group[g_APinDescription[SDA].ulPort].PINCFG[g_APinDescription[SDA].ulPin].bit.PMUXEN = 0;
+					adc_read_state = WAIT_TICK;
+
+					// disable this interrupt now, and go back to waiting for the next sample tick
+					detachInterrupt(ADC_INT);
+
+					// de-power the ADC at sample rates more that 10ms
+					if (sampleRate.read() >= 10)
+					{
+						digitalWrite(ADC_PWR_PIN, 0);
+
+						// Return the SDA pin back to GPIO, makes sure lines are high
+						// could also wait for bus IDLE
+						PORT->Group[g_APinDescription[SCL].ulPort].PINCFG[g_APinDescription[SCL].ulPin].bit.PMUXEN = 0;
+						PORT->Group[g_APinDescription[SDA].ulPort].PINCFG[g_APinDescription[SDA].ulPin].bit.PMUXEN = 0;
+					}
+				}
+				else
+				{
+					// sample next channel directly without waiting for the next tick
+					adc_read_state = WAIT_ADC;
+					get_next_sample_buf();
+
+					adc_setup(current_sample_channel);
 				}
 			}
 		}
@@ -953,6 +982,11 @@ void setup()
 	{
 		sampleRate.write(150);
 	}
+	if (nburst.read() == 0)
+	{
+		nburst.write(1);
+	}
+	burst = nburst.read();
 
 	// tcConfigure(sampleRate.read()); //configure the timer to run at <sampleRate>Hertz
 	// tcStartCounter(); //starts the timer
@@ -1221,6 +1255,7 @@ void open_bin_file(char *new_name)
 		memset(hdr, 0, sizeof(hdr));
 		p += sprintf(p, "adc122c04 " __DATE__ " " __TIME__ "\r\n");
 		p += sprintf(p, "sample rate = %d (ms)\r\n", sampleRate.read());
+		p += sprintf(p, "no. burst = %d\r\n", nburst.read());
 		p += sprintf(p, "bytes per sample = %d\r\n", BYTES_PER_SAMPLE);
 		p += sprintf(p, "ADC REG1 = 0x%02x\r\n", adc_reg1.read());
 		while (channel_config_reg0[ad_ch] != 0xff)
@@ -1664,6 +1699,23 @@ int cmd_debug(char *line)
 	return 0;
 }
 
+int cmd_burst(char *line)
+{
+	int16_t new_burst;
+	SerialDEBUG.print("no. burst ");
+
+	if (line)
+	{
+	    sscanf(line, "%d", &new_burst);
+
+		nburst.write(new_burst);
+	}
+
+	SerialDEBUG.println(nburst.read());
+
+	return 0;
+}
+
 int cmd_sleep(char *line)
 {
 	can_sleep = true;
@@ -1758,6 +1810,9 @@ int cmd_set(char *line)
 
 	SerialDEBUG.print("debug : ");
 	SerialDEBUG.println(debug);
+
+	SerialDEBUG.print("number in burst : ");
+	SerialDEBUG.println(nburst.read());
 
 	SerialDEBUG.print("current file : ");
 	SerialDEBUG.println(file_name);
