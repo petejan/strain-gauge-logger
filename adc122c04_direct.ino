@@ -13,6 +13,12 @@
 
 #include "wiring_private.h"
 
+#ifdef ARDUINO_ITSYBITSY_M0
+#include <Adafruit_SPIFlash.h>
+// for flashTransport definition
+#include "flash_config.h"
+#endif
+
 //#define SerialDEBUG SERIAL_PORT_USBVIRTUAL
 #define SerialDEBUG SERIAL_PORT_HARDWARE
 
@@ -108,7 +114,8 @@ const uint8_t PIN_WRITE_LED = 8;
 const uint8_t SAMPLE_PIN = 13;
 const uint8_t SLEEP_PIN = 11;
 const uint8_t ADC_PWR_PIN = 10;
-const uint8_t SD_CAR_DET_PIN = 7;
+
+#define SD_CAR_DET_PIN  7
 
 const uint8_t MISSED_SAMPLE_PIN = A2;
 
@@ -125,7 +132,7 @@ const uint8_t SD_CS_PIN = 4;
 const uint8_t ADC_INT = A0;
 const uint8_t ADC_PWR_PIN = A1;
 
-const uint8_t SD_CAR_DET_PIN = A2;
+#define SD_CAR_DET_PIN  A2
 
 // SD chip select pin.
 const uint8_t SD_CS_PIN = A3;
@@ -143,38 +150,97 @@ const uint8_t SD_CS_PIN = A3;
 #endif
 #ifdef ARDUINO_ITSYBITSY_M0
 
+#define FLASH_SS       (39u)                    // Flash chip SS pin.
+#define FLASH_SPI_PORT SPI1                   // What SPI port is Flash on?
+
+Adafruit_SPIFlash flash(&flashTransport);
+
+// file system object from SdFat
+FatVolume fatfs;
+typedef File file_t;
+
 const uint8_t ADC_INT = 7;
 const uint8_t ADC_PWR_PIN = 9;
 
-const uint8_t SD_CAR_DET_PIN = A2;
-
 // SD chip select pin.
-const uint8_t SD_CS_PIN = A3;
-
-//const uint8_t PIN_WRITE_LED = 8;
-//const uint8_t SAMPLE_PIN = 13;
-//const uint8_t SLEEP_PIN = 11;
-
-//const uint8_t MISSED_SAMPLE_PIN = A2;
-
-//const uint8_t LED_RED_PIN = 13;
-//const uint8_t LED_GREEN_PIN = 8;
+const uint8_t SD_CS_PIN = A1;
 
 #define I2C_SERCOM SERCOM3
-
-//#include <Adafruit_DotStar.h>
 
 // There is only one pixel on the board
 #define NUMPIXELS 1
 
-//Use these pin definitions for the ItsyBitsy M4
-#define DATAPIN    (41u)
-#define CLOCKPIN   (40u)
+void dotstar_send(uint32_t led)
+{
+	uint32_t d, msk;
+	int i;
 
-//Adafruit_DotStar strip(NUMPIXELS, DATAPIN, CLOCKPIN, DOTSTAR_BRG);
+	pinMode(PIN_DOTSTAR_DATA, OUTPUT);
+	pinMode(PIN_DOTSTAR_CLK, OUTPUT);
+	digitalWrite(PIN_DOTSTAR_DATA, 0);
+	digitalWrite(PIN_DOTSTAR_CLK, 1);
 
-#endif
+	d = 0;
+	msk = 0x80000000ul;
+	for (i=0;i<32;i++)
+	{
+		digitalWrite(PIN_DOTSTAR_CLK, 0);
 
+		if (d & msk)
+		{
+			digitalWrite(PIN_DOTSTAR_DATA, 1);
+		}
+		else
+		{
+			digitalWrite(PIN_DOTSTAR_DATA, 0);
+		}
+
+		digitalWrite(PIN_DOTSTAR_CLK, 1);
+
+		msk = msk >> 1;
+	}
+	d = 0xe0000000ul | led;
+	msk = 0x80000000ul;
+	for (i=0;i<32;i++)
+	{
+		digitalWrite(PIN_DOTSTAR_CLK, 0);
+
+		if (d & msk)
+		{
+			digitalWrite(PIN_DOTSTAR_DATA, 1);
+		}
+		else
+		{
+			digitalWrite(PIN_DOTSTAR_DATA, 0);
+		}
+
+		digitalWrite(PIN_DOTSTAR_CLK, 1);
+
+		msk = msk >> 1;
+	}
+
+	d = 0xffffffffl;
+	msk = 0x80000000ul;
+	for (i=0;i<32;i++)
+	{
+		digitalWrite(PIN_DOTSTAR_CLK, 0);
+
+		if (d & msk)
+		{
+			digitalWrite(PIN_DOTSTAR_DATA, 1);
+		}
+		else
+		{
+			digitalWrite(PIN_DOTSTAR_DATA, 0);
+		}
+
+		digitalWrite(PIN_DOTSTAR_CLK, 1);
+
+		msk = msk >> 1;
+	}
+}
+
+#else
 //------------------------------------------------------------------------------
 // Note: Uno will not support SD_FAT_TYPE = 3.
 // SD_FAT_TYPE = 0 for SdFat/File as defined in SdFatConfig.h,
@@ -187,20 +253,21 @@ const uint8_t SD_CS_PIN = A3;
 #define SD_CONFIG SdSpiConfig(SD_CS_PIN, SHARED_SPI, SPI_CLOCK)
 
 #if SD_FAT_TYPE == 0
-SdFat sd;
+SdFat flash;
 typedef File file_t;
 #elif SD_FAT_TYPE == 1
-SdFat32 sd;
+SdFat32 flash;
 typedef File32 file_t;
 #elif SD_FAT_TYPE == 2
-SdExFat sd;
+SdExFat flash;
 typedef ExFile file_t;
 #elif SD_FAT_TYPE == 3
-SdFs sd;
+SdFs flash;
 typedef FsFile file_t;
 #else  // SD_FAT_TYPE
 #error Invalid SD_FAT_TYPE
 #endif  // SD_FAT_TYPE
+#endif
 
 // Call back for file timestamps.  Only called for file create and sync().
 void dateTime(uint16_t* date, uint16_t* time, uint8_t* ms10)
@@ -651,8 +718,8 @@ void TC5_Handler (void)
 				if (adc_read_state == WAIT_PWR_TICK)
 				{
 					// Return the SDA pin back to I2C
-					PORT->Group[g_APinDescription[SCL].ulPort].PINCFG[g_APinDescription[SCL].ulPin].bit.PMUXEN = 1;
-					PORT->Group[g_APinDescription[SDA].ulPort].PINCFG[g_APinDescription[SDA].ulPin].bit.PMUXEN = 1;
+					//PORT->Group[g_APinDescription[SCL].ulPort].PINCFG[g_APinDescription[SCL].ulPin].bit.PMUXEN = 1;
+					//PORT->Group[g_APinDescription[SDA].ulPort].PINCFG[g_APinDescription[SDA].ulPin].bit.PMUXEN = 1;
 
 					digitalWrite(ADC_PWR_PIN, 1);
 #ifdef ADAFRUIT_FEATHER_M0
@@ -736,15 +803,18 @@ void tcConfigure(int sampleRate)
 /* I2C master initialization */
 void i2c_master_init()
 {
-	// Return the SDA pin back to I2C
-	PORT->Group[g_APinDescription[SCL].ulPort].PINCFG[g_APinDescription[SCL].ulPin].bit.PMUXEN = 1;
-	PORT->Group[g_APinDescription[SDA].ulPort].PINCFG[g_APinDescription[SDA].ulPin].bit.PMUXEN = 1;
+	// when the pin mux is not I2C, make the outputs high
+	pinMode(PIN_WIRE_SCL, OUTPUT);
+	pinMode(PIN_WIRE_SDA, OUTPUT);
+
+	digitalWrite(PIN_WIRE_SCL, 1);
+	digitalWrite(PIN_WIRE_SDA, 1);
 
 	/* By setting the SPEED bit field as 0x01, I2C Master runs at SM or FM,
 	   By setting the SDAHOLD bit field as 0x0, SDA hold time disabled,
 	   I2C_SERCOM is configured as an I2C Master by writing the MODE bitfield as 0x5 */
 
-	I2C_SERCOM->I2CM.CTRLA.reg = SERCOM_I2CM_CTRLA_SPEED (1) |
+	I2C_SERCOM->I2CM.CTRLA.reg = SERCOM_I2CM_CTRLA_SPEED (0) |
 			SERCOM_I2CM_CTRLA_SDAHOLD(0x0) |
 			SERCOM_I2CM_CTRLA_MODE_I2C_MASTER;
 
@@ -768,6 +838,9 @@ void i2c_master_init()
 	I2C_SERCOM->I2CM.STATUS.bit.BUSSTATE = 0x1;
 	/* synchronization busy */
 	while(I2C_SERCOM->I2CM.SYNCBUSY.bit.SYSOP);
+
+	pinPeripheral(PIN_WIRE_SCL, PIO_SERCOM);
+	pinPeripheral(PIN_WIRE_SDA, PIO_SERCOM);
 }
 
 uint8_t tx_buf[8];
@@ -855,8 +928,8 @@ void adc_convert_isr(void)
 
 						// Return the SDA pin back to GPIO, makes sure lines are high
 						// could also wait for bus IDLE
-						PORT->Group[g_APinDescription[SCL].ulPort].PINCFG[g_APinDescription[SCL].ulPin].bit.PMUXEN = 0;
-						PORT->Group[g_APinDescription[SDA].ulPort].PINCFG[g_APinDescription[SDA].ulPin].bit.PMUXEN = 0;
+						//PORT->Group[g_APinDescription[SCL].ulPort].PINCFG[g_APinDescription[SCL].ulPin].bit.PMUXEN = 0;
+						//PORT->Group[g_APinDescription[SDA].ulPort].PINCFG[g_APinDescription[SDA].ulPin].bit.PMUXEN = 0;
 					}
 				}
 				else
@@ -916,7 +989,7 @@ void setup()
 	/* enable the event system and the RTC event PERE7, this wakes every second, for long sample times this makes sure it
 	 * wakes occasionally. Probably draws some port, although only 13 ms every second
 	 */
-    RTC->MODE2.CTRL.reg &= ~RTC_MODE2_CTRL_ENABLE; // disable RTC
+    RTC->MODE2.CTRL.reg &= ~RTC_MODE2_CTRL_ENABLE; // disable RTC as bit is only writable when disabled
     while (RTC->MODE2.STATUS.bit.SYNCBUSY);
 
 	RTC->MODE2.EVCTRL.bit.PEREO7 = 1; // bit is enable protected, enable per7, 1 / second
@@ -926,26 +999,7 @@ void setup()
 
     PM->APBCMASK.reg |= PM_APBCMASK_EVSYS; // Switch on the event system peripheral
 
-    // enable event sys clock
-    GCLK->CLKCTRL.reg = (uint32_t)((GCLK_CLKCTRL_CLKEN | GCLK_CLKCTRL_GEN_GCLK2 | (EVSYS_GCLK_ID_0 << GCLK_CLKCTRL_ID_Pos)));
-    while (GCLK->STATUS.bit.SYNCBUSY);
-
-    EVSYS->CHANNEL.reg = EVSYS_CHANNEL_CHANNEL(0) | EVSYS_CHANNEL_PATH_RESYNCHRONIZED | EVSYS_CHANNEL_EVGEN(EVSYS_ID_GEN_RTC_PER_7) | EVSYS_CHANNEL_EDGSEL_RISING_EDGE; // RTC PER6
-    EVSYS->INTENSET.bit.EVD0 = 1;
-
-	// Configure interrupt request
-	NVIC_DisableIRQ(EVSYS_IRQn);
-	NVIC_ClearPendingIRQ(EVSYS_IRQn);
-	NVIC_SetPriority(EVSYS_IRQn, 1);
-	NVIC_EnableIRQ(EVSYS_IRQn);
-
-	/* disable USB, might be enabled from startup, running at 8 MHz clock, because 48 MHz clock draws power.
-	 * 48 MHz is needed for USB clock
-	 */
-
-	PM->AHBMASK.bit.USB_ = 0; // disable USB clock
-	USB->DEVICE.CTRLA.reg &= ~(USB_CTRLA_RUNSTDBY | USB_CTRLA_ENABLE); // disable USB
-
+    // enable the I2C serial port
 #ifdef ARDUINO_ITSYBITSY_M0
     PM->APBCMASK.reg |= PM_APBCMASK_SERCOM3; // Switch on the I2C_SERCOM (I2C) clock
 
@@ -969,14 +1023,37 @@ void setup()
 #endif
     while (GCLK->STATUS.bit.SYNCBUSY);
 
-    pinPeripheral(SCL, PIO_SERCOM);
-    pinPeripheral(SDA, PIO_SERCOM);
+    GCLK->CLKCTRL.reg = (uint32_t)((GCLK_CLKCTRL_GEN_GCLK0 | (GCLK_CLKCTRL_ID_ADC_Val << GCLK_CLKCTRL_ID_Pos)));
+    while (GCLK->STATUS.bit.SYNCBUSY);
+    GCLK->CLKCTRL.reg = (uint32_t)((GCLK_CLKCTRL_GEN_GCLK0 | (GCLK_CLKCTRL_ID_DAC_Val << GCLK_CLKCTRL_ID_Pos)));
+    while (GCLK->STATUS.bit.SYNCBUSY);
 
-    i2c_master_init();
+
+    // enable event sys clock
+    GCLK->CLKCTRL.reg = (uint32_t)((GCLK_CLKCTRL_CLKEN | GCLK_CLKCTRL_GEN_GCLK2 | (EVSYS_GCLK_ID_0 << GCLK_CLKCTRL_ID_Pos)));
+    while (GCLK->STATUS.bit.SYNCBUSY);
+
+    EVSYS->CHANNEL.reg = EVSYS_CHANNEL_CHANNEL(0) | EVSYS_CHANNEL_PATH_RESYNCHRONIZED | EVSYS_CHANNEL_EVGEN(EVSYS_ID_GEN_RTC_PER_7) | EVSYS_CHANNEL_EDGSEL_RISING_EDGE; // RTC PER6
+    EVSYS->INTENSET.bit.EVD0 = 1;
+
+	// Configure interrupt request
+	NVIC_DisableIRQ(EVSYS_IRQn);
+	NVIC_ClearPendingIRQ(EVSYS_IRQn);
+	NVIC_SetPriority(EVSYS_IRQn, 1);
+	NVIC_EnableIRQ(EVSYS_IRQn);
+
+	/* disable USB, might be enabled from startup, running at 8 MHz clock, because 48 MHz clock draws power.
+	 * 48 MHz is needed for USB clock
+	 */
+
+	PM->AHBMASK.bit.USB_ = 0; // disable USB clock
+	USB->DEVICE.CTRLA.reg &= ~(USB_CTRLA_RUNSTDBY | USB_CTRLA_ENABLE); // disable USB
 
 	SerialDEBUG.begin(115200); // start serial communication at 115200bps
 
 	SerialDEBUG.println(F("ADC122C04 direct " __DATE__ " " __TIME__));
+
+	i2c_master_init();
 
 	volatile uint32_t val1, val2, val3, val4;
 	volatile uint32_t *ptr1 = (volatile uint32_t *)0x0080A00C;
@@ -993,7 +1070,9 @@ void setup()
 	sprintf(buf, "%08x %08x %08x %08x", val1, val2, val3, val4);
 	SerialDEBUG.println(buf);
 
+#ifdef SD_CAR_DET_PIN
 	pinMode(SD_CAR_DET_PIN, INPUT_PULLUP);
+#endif
 	pinMode(ADC_INT, INPUT_PULLUP);
 
 	pinMode(SD_CS_PIN, OUTPUT);
@@ -1015,17 +1094,13 @@ void setup()
 	pinMode(ADC_PWR_PIN, OUTPUT);
 	digitalWrite(ADC_PWR_PIN, 1); // start powered up
 
-	pinMode(PIN_WIRE_SDA, OUTPUT);
-	digitalWrite(PIN_WIRE_SDA, 1);
-	pinMode(PIN_WIRE_SCL, OUTPUT);
-	digitalWrite(PIN_WIRE_SCL, 1);
-
 	SerialDEBUG.print(F("SystemClock "));
 	SerialDEBUG.println(SystemCoreClock);
 
 	// attachInterrupt(ADC_INT, adc_convert_isr, FALLING);
+#ifdef SD_CAR_DET_PIN
 	attachInterrupt(SD_CAR_DET_PIN, card_det_isr, CHANGE);
-
+#endif
     // Set callback
     FsDateTime::setCallback(dateTime);
 
@@ -1098,7 +1173,6 @@ void setup()
 		SerialDEBUG.println("ERROR: ADC did not respond");
 	}
 
-#ifndef ADAFRUIT_ITSYBITSY_M0
 	/* setup the logging file */
 	file_name_template.read(&file_name_template_mem);
 
@@ -1116,27 +1190,53 @@ void setup()
 
 	/* read setup commands from file */
 
+#ifndef ADAFRUIT_ITSYBITSY_M0
 	int det = digitalRead(SD_CAR_DET_PIN);
 
 	if (det)
 	{
-		if (!sd.begin(SD_CONFIG))
+		if (!flash.begin(SD_CONFIG))
 		{
 			SerialDEBUG.println("sd.begin failed");
 		}
 		else
 		{
 			SerialDEBUG.print("Fat Type : ");
-			SerialDEBUG.println(sd.vol()->fatType());
+			SerialDEBUG.println(flash.vol()->fatType());
 		}
 	}
 	else
 	{
 		SerialDEBUG.println("no card");
 	}
+#else
+	  // Initialize flash library and check its chip ID.
+	  if (!flash.begin())
+	  {
+		  SerialDEBUG.println("Error, failed to initialize flash chip!");
+	  }
+	  else
+	  {
+		  SerialDEBUG.print("Flash chip JEDEC ID: 0x");
+		  SerialDEBUG.println(flash.getJEDECID(), HEX);
+		  Serial.print(F("Flash size: ")); Serial.print(flash.size() / 1024); Serial.println(F(" KB"));
+	  }
+	  // First call begin to mount the filesystem.  Check that it returns true
+	  // to make sure the filesystem was mounted.
+	  if (!fatfs.begin(&flash))
+	  {
+		  SerialDEBUG.println("Error, failed to mount newly formatted filesystem!");
+		  SerialDEBUG.println("Was the flash chip formatted with the fatfs_format example?");
+	  }
+	  else
+	  {
+		  SerialDEBUG.println("Mounted filesystem!");
+	  }
+
+#endif
 
 	int n;
-	binFile = sd.open("CONFIG.TXT", FILE_READ);
+	binFile.open("CONFIG.TXT", FILE_READ);
 
 	// check for open error
 	if (binFile.isOpen())
@@ -1174,6 +1274,9 @@ void setup()
 	{
 		SerialDEBUG.println("could not open CONFIG.TXT file");
 	}
+
+#ifdef ADAFRUIT_ITSYBITSY_M0
+	dotstar_send(0x01000001); // dim RED
 #endif
 
 	/* Sampling is started in main loop */
@@ -1245,7 +1348,7 @@ void open_bin_file(char *new_name)
 
 			binFile.close();
 
-			binFile = sd.open(new_name, FILE_WRITE);
+			binFile.open(new_name, FILE_WRITE);
 
 			can_sleep = false;
 			can_sleep_count = 5;
@@ -1255,7 +1358,7 @@ void open_bin_file(char *new_name)
 	{
 		SerialDEBUG.println(F("file not open, append"));
 
-		binFile = sd.open(new_name, FILE_WRITE);
+		binFile.open(new_name, FILE_WRITE);
 
 		binFile.getSFN(name_tmp, sizeof(name_tmp));
 		SerialDEBUG.print("short file name after open : ");
@@ -1282,27 +1385,44 @@ void open_bin_file(char *new_name)
 		SerialDEBUG.print(F("open failed : "));
 		SerialDEBUG.println(new_name);
 
+#ifdef SD_CAR_DET_PIN
 		int det = digitalRead(SD_CAR_DET_PIN);
+#else
+		int det = 1;
+#endif
 
 		if (det)
 		{
+#ifndef ADAFRUIT_ITSYBITSY_M0
 			// try and close file, and re-open the SD card
-			sd.end();
+			flash.end();
 
-			if (!sd.begin(SD_CONFIG))
+			if (!flash.begin(SD_CONFIG))
 			{
 				SerialDEBUG.println("sd.begin failed");
 			}
 			else
 			{
 				SerialDEBUG.print("Fat Type : ");
-				SerialDEBUG.println(sd.vol()->fatType());
+				SerialDEBUG.println(flash.vol()->fatType());
 			}
 		}
 		else
 		{
 			SerialDEBUG.println("no card");
 		}
+#else
+		if (!flash.begin())
+		{
+			SerialDEBUG.println("flash.begin failed");
+		}
+	}
+	else
+	{
+		SerialDEBUG.println("no card");
+	}
+
+#endif
 	}
 
 	/* for a new file, write the file header to the start of the file */
@@ -1420,6 +1540,8 @@ int cmd_regs(char *line)
 	ZeroRegOptions opts = { SerialDEBUG, false };
 	printZeroRegs(opts);
 
+	opts.showDisabled = true;
+	printZeroRegPORT(opts);
 	//opts.showDisabled = true;
 	//printZeroRegDMAC(opts);
 
@@ -1678,7 +1800,11 @@ int cmd_time(char *line)
 
 int cmd_ls(char *line)
 {
+#ifdef SD_CAR_DET_PIN
 	bool det = digitalRead(SD_CAR_DET_PIN);
+#else
+	bool det = true;
+#endif
 
 	File32 dir;
 	File32 file;
@@ -1692,10 +1818,12 @@ int cmd_ls(char *line)
 		SerialDEBUG.println(F("no card detected"));
 	}
 
-	uint8_t ft = sd.vol()->fatType();
+#ifndef ADAFRUIT_ITSYBITSY_M0
+	uint8_t ft = flash.vol()->fatType();
 
 	SerialDEBUG.print(F("fattype : "));
 	SerialDEBUG.println(ft);
+#endif
 
 	  // Open root directory
 	  if (!dir.open("/"))
@@ -1948,10 +2076,27 @@ int cmd_format(char *line)
 
 		if (strcmp(line, "yes") == 0)
 		{
-			sd.begin(SD_CONFIG);
-			m_card = sd.card();
+#ifdef ADAFRUIT_ITSYBITSY_M0
+			if (!flash.eraseChip())
+			{
+				SerialDEBUG.println("Failed to erase chip!");
+			}
+
+			flash.waitUntilReady();
+			SerialDEBUG.println("Successfully erased chip!");
+
+			//m_card = sd.card();
+			//fat_format.format(m_card, hdr, &SerialDEBUG);
+#else
+			flash.begin(SD_CONFIG);
+			m_card = flash.card();
 			fat_format.format(m_card, hdr, &SerialDEBUG);
+#endif
 		}
+	}
+	else
+	{
+		SerialDEBUG.println("Format not done try 'format yes'");
 	}
 
 	return 0;
@@ -2025,9 +2170,17 @@ void loop()
     rtc_regs = RTC->MODE2.CLOCK.reg; // REG is year/month/day/hour/min/sec
     bool tick = false;
 
+#ifdef ADAFRUIT_ITSYBITSY_M0
+	dotstar_send(0x00000001); // RED off
+#endif
+
 	if (rtc_regs != last_rtc)
 	{
 		tick = true;
+
+#ifdef ADAFRUIT_ITSYBITSY_M0
+		dotstar_send(0x02000100); // GREEN on
+#endif
 
 		now = rtc.getEpoch();
 		gmtime_r(&now, &now_tm);
@@ -2205,7 +2358,7 @@ void loop()
 
 		missed_sample = false;
 	}
-#ifndef ADAFRUIT_ITSYBITSY_M0
+#ifdef SD_CAR_DET_PIN
 	// deal with any card removal/insert
 	bool det = digitalRead(SD_CAR_DET_PIN);
 	if ((card_det_flag) || (last_card != det))
@@ -2217,19 +2370,19 @@ void loop()
 
 		if (det)
 		{
-			if (!sd.begin(SD_CONFIG))
+			if (!flash.begin(SD_CONFIG))
 			{
 				SerialDEBUG.println("sd.begin failed");
 			}
 			else
 			{
 				SerialDEBUG.print("Fat Type : ");
-				SerialDEBUG.println(sd.vol()->fatType());
+				SerialDEBUG.println(flash.vol()->fatType());
 			}
 		}
 		else
 		{
-			sd.end();
+			flash.end();
 		}
 
 		can_sleep = false;
@@ -2314,7 +2467,6 @@ void loop()
 			SerialDEBUG.println(binFile.position());
 		}
 
-#ifndef ADAFRUIT_ITSYBITSY_M0
 		if (sample_write_sd <= 0) // only change file when sample number is zero
 		{
 			if (!binFile.isOpen())
@@ -2336,7 +2488,7 @@ void loop()
 
 			sample_write_sd = 0;
 		}
-#endif
+
 		// write data to file
 		if (binFile.isOpen())
 		{
@@ -2435,16 +2587,20 @@ void loop()
 	{
 		SerialDEBUG.flush();
 
-		if (sd.fatType() > 0)
+#ifndef ADAFRUIT_ITSYBITSY_M0
+		if (flash.fatType() > 0)
 		{
-			while (sd.card()->isBusy()) {} // make sure the SD card has been flushed
+			while (flash.card()->isBusy()) {} // make sure the SD card has been flushed
 		}
+#endif
 
 #ifdef ADAFRUIT_FEATHER_M0
 		digitalWrite(SLEEP_PIN, 1);
 #endif
 
-		//while(I2C_SERCOM->I2CM.STATUS.bit.BUSSTATE == 0x02); // Master on BUS, causes missed samples
+#ifdef ADAFRUIT_ITSYBITSY_M0
+		dotstar_send(0x00000000); // all off
+#endif
 
 		SysTick->CTRL &= ~SysTick_CTRL_TICKINT_Msk; // disable the sys tick, otherwise we get worken by it
 
@@ -2453,20 +2609,15 @@ void loop()
 
 		SysTick->CTRL |= SysTick_CTRL_TICKINT_Msk; // re-enable, used by SdFAT
 
+#ifdef ADAFRUIT_ITSYBITSY_M0
+		dotstar_send(0x01000001); // red
+#endif
+
 		// read clock now we're awake
 		RTC->MODE2.READREQ.reg = RTC_READREQ_RREQ;
 	    while (RTC->MODE2.STATUS.bit.SYNCBUSY);
 
 	    rtc_regs = RTC->MODE2.CLOCK.reg; // REG is year/month/day/hour/min/sec
-
-		//		if (adc_read_state == WAIT_TICK)
-//		{
-//			LowPower.standby();
-//		}
-//		else
-//		{
-//			LowPower.idle(IDLE_2);
-//		}
 
 #ifdef ADAFRUIT_FEATHER_M0
 		digitalWrite(SLEEP_PIN, 0);
