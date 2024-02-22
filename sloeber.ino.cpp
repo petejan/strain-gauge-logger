@@ -2,7 +2,7 @@
 //This is a automatic generated file
 //Please do not modify this file
 //If you touch this file your change will be overwritten during the next build
-//This file has been generated on 2024-02-18 15:30:03
+//This file has been generated on 2024-02-22 11:57:28
 
 #include "Arduino.h"
 #include "Arduino.h"
@@ -15,6 +15,7 @@
 #include "adc122c04.h"
 #include "wiring_private.h"
 
+void dotstar_send(uint32_t led) ;
 void dateTime(uint16_t* date, uint16_t* time, uint8_t* ms10) ;
 void rtc_int() ;
 int i2c_master_adc_cmd(uint8_t cmd) ;
