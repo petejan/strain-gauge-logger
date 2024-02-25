@@ -19,6 +19,18 @@
 #include "flash_config.h"
 #endif
 
+#ifdef XMODEM
+#include <XModem.h>
+XModem xmodem;
+#endif
+
+//#include "zmodem_config.h"
+
+#include "zmodem.h"
+#include "zmodem_zm.h"
+
+SdFile fout;
+
 //#define SerialDEBUG SERIAL_PORT_USBVIRTUAL
 #define SerialDEBUG SERIAL_PORT_HARDWARE
 
@@ -43,6 +55,8 @@ int cmd_file(char *line);
 int cmd_format(char *line);
 int cmd_sync(char *line);
 int cmd_burst(char *line);
+int cmd_sz(char *line);
+int cmd_rz(char *line);
 
 enum RUN_MODE {RUN_MODE_STOP, RUN_MODE_RUN, RUN_MODE_START_LATER};
 
@@ -100,6 +114,8 @@ CMD cmds[] =
 		  {"file",       cmd_file,       "display/set file name %Y-%M-%DT%H%M.BIN"},
 		  {"format",     cmd_format,     "format card 'format yes' to format"},
 		  {"sync",       cmd_sync,  	 "sync file"},
+		  {"sz",         cmd_sz,  	     "send file"},
+		  {"rz",         cmd_rz,  	     "receive file"},
 
 		  {"---",        NULL,         "help"},
 		  {"help",       cmd_help,       "command help, this message"}
@@ -288,7 +304,7 @@ void dateTime(uint16_t* date, uint16_t* time, uint8_t* ms10)
 }
 
 void hexdump(
-    Stream& stream,
+    Stream& out_stream,
     const uint8_t* const data,
     const uint32_t byteCount,
     const bool header = true,
@@ -304,30 +320,30 @@ void hexdump(
     {
         if (message == nullptr || strlen(message) == 0)
         {
-            stream.printf("Memory hexdump - 0x%X (%u) bytes\n", byteCount, byteCount);
+            out_stream.printf("Memory hexdump - 0x%X (%u) bytes\n", byteCount, byteCount);
         }
         else
         {
-            stream.printf("Memory hexdump %s - 0x%X (%u) bytes\n", message, byteCount, byteCount);
+            out_stream.printf("Memory hexdump %s - 0x%X (%u) bytes\n", message, byteCount, byteCount);
         }
     }
 
     if (byteCount == 0)
     {
-        stream.println("Byte count is 0 (hexdump).");
+        out_stream.println("Byte count is 0 (hexdump).");
         for (uint8_t i = 0; i < linefeeds; ++i)
         {
-            stream.println();
+            out_stream.println();
         }
         return;
     }
 
     if (data == nullptr)
     {
-        stream.println("Data nullpointer (hexdump).");
+        out_stream.println("Data nullpointer (hexdump).");
         for (uint8_t i = 0; i < linefeeds; ++i)
         {
-            stream.println();
+            out_stream.println();
         }
         return;
     }
@@ -336,30 +352,30 @@ void hexdump(
     {
         if (offset > 0)
         {
-            stream.printf("Showing addresses with simulated offset 0x%02X (%u).\n", offset, offset);
+            out_stream.printf("Showing addresses with simulated offset 0x%02X (%u).\n", offset, offset);
         }
-        stream.println();
+        out_stream.println();
 
         // Output header
-        stream.print("     ");
+        out_stream.print("     ");
         for (uint8_t i = 0; i < 16; ++i)
         {
             if (i == 8)
             {
-                stream.print("  ");
+                out_stream.print("  ");
             }
-            stream.printf(" %02X", i);
+            out_stream.printf(" %02X", i);
         }
-        stream.print("\n     ");
+        out_stream.print("\n     ");
         for (uint8_t i = 0; i < 16; ++i)
         {
             if (i == 8)
             {
-                stream.print("  ");
+                out_stream.print("  ");
             }
-            stream.printf(" --");
+            out_stream.printf(" --");
         }
-        stream.println();
+        out_stream.println();
     }
 
     // Output data
@@ -370,14 +386,14 @@ void hexdump(
     {
         ++lineNr;
         // Output first adreslabel and indent
-        stream.printf("%04X:", address & 0xFFF0);
+        out_stream.printf("%04X:", address & 0xFFF0);
         for (uint8_t i = 0; i < (offset & 0xF); ++i)
         {
             if (i == 8 && (offset & 0xF) >= 8)
             {
-                stream.print("  ");
+                out_stream.print("  ");
             }
-            stream.print("   ");
+            out_stream.print("   ");
         }
     }
 
@@ -390,22 +406,22 @@ void hexdump(
             ++lineNr;
             if (lineNr > 1)
             {
-                stream.println();
+                out_stream.println();
             }
             // Write address label
-            stream.printf("%04X:", address & 0xFFF0);
+            out_stream.printf("%04X:", address & 0xFFF0);
         }
         if ((address & 0xF) ==  8)
         {
-            stream.print(" -");
+            out_stream.print(" -");
         }
-        stream.printf(" %02X", data[i]);
+        out_stream.printf(" %02X", data[i]);
         ++address;
     }
-    stream.println();
+    out_stream.println();
     for (uint8_t i = 0; i < linefeeds; ++i)
     {
-        stream.println();
+        out_stream.println();
     }
 }
 
@@ -587,7 +603,7 @@ void tcDisable()
 }
 
 volatile bool waiting_for_sample = false;
-volatile int16_t sample_write = -1;
+volatile int16_t sample_write = -BYTES_PER_SAMPLE;
 volatile int16_t sample_ready = -BYTES_PER_SAMPLE;
 
 //uint8_t data_buffer[512 * BYTES_PER_SAMPLE * 2];
@@ -763,7 +779,7 @@ void TC5_Handler (void)
 // Configures the TC to generate output events at the sample frequency.
 // Configures the TC in Frequency Generation mode, with an event output once
 // each time the sample frequency period expires.
-void tcConfigure(int sampleRate)
+void tcConfigure(uint32_t sampleRate)
 {
 	// select the generic clock generator used as source to the generic clock multiplexer
 	// use GEN2 which is on in standby, also feeds RTC from XOSC32k
@@ -779,13 +795,16 @@ void tcConfigure(int sampleRate)
 	//set prescaler
 	//the clock normally counts at the GCLK_TC frequency, but we can set it to divide that frequency to slow it down
 	//you can use different prescaler divisons here like TC_CTRLA_PRESCALER_DIV1 to get a different range
-	TC5->COUNT16.CTRLA.reg |= TC_CTRLA_PRESCALER_DIV1 | TC_CTRLA_RUNSTDBY; //it will divide GCLK_TC frequency by 1
-	//TC5->COUNT16.CTRLA.reg |= TC_CTRLA_PRESCALER_DIV1024 | TC_CTRLA_ENABLE | TC_CTRLA_RUNSTDBY; //it will divide GCLK_TC frequency by 1024
-	//set the compare-capture register.
-	//The counter will count up to this value (it's a 16bit counter so we use uint16_t)
-	//this is how we fine-tune the frequency, make it count to a lower or higher value
-	// clock is 32768/32 = 1024 Hz
-	TC5->COUNT16.CC[0].reg = (uint16_t) (((uint32_t)(sampleRate - 1)* 1024ul) / 1000ul);
+	if (sampleRate < 30000)
+	{
+		TC5->COUNT16.CTRLA.reg |= TC_CTRLA_PRESCALER_DIV1 | TC_CTRLA_RUNSTDBY; //it will divide GCLK_TC frequency by 1
+		TC5->COUNT16.CC[0].reg = (uint16_t) ((sampleRate* 1024ul) / 1000ul) - 1;
+	}
+	else
+	{
+		TC5->COUNT16.CTRLA.reg |= TC_CTRLA_PRESCALER_DIV1024 | TC_CTRLA_RUNSTDBY; //it will divide GCLK_TC frequency by 1024
+		TC5->COUNT16.CC[0].reg = (uint16_t) ((sampleRate* 1024ul) / 1000ul / 1024ul) - 1;
+	}
 	while (tcIsSyncing());
 
 	// use 2nd capture register to implement ADC power up delay
@@ -847,7 +866,7 @@ uint8_t tx_buf[8];
 #define BUF_SIZE sizeof(tx_buf)
 
 volatile int16_t sample_read = -BYTES_PER_SAMPLE;
-volatile int16_t sample_write_sd = -1;
+volatile int16_t sample_write_sd = 0; // last write position
 
 uint8_t hdr[512];
 
@@ -1125,6 +1144,7 @@ void setup()
 	// tcStartCounter(); //starts the timer
 
 	debug = debug_set.read();
+	debug = 1;
 
 	// if mode is start-later, load with start time, otherwise alarm every minute
 	if (run_mode.read() == RUN_MODE_START_LATER)
@@ -1178,7 +1198,11 @@ void setup()
 
 	if (strlen((char *)file_name_template_mem.txt) == 0)
 	{
+#ifndef ADAFRUIT_ITSYBITSY_M0
 		const char file_name_def[80] = "SGL-%Y-%m-%d-T%H.BIN";
+#else
+		const char file_name_def[80] = "DATA.BIN";
+#endif
 		char_80 *p;
 		p = (char_80 *)file_name_def;
 
@@ -1906,10 +1930,13 @@ int cmd_burst(char *line)
 
 int cmd_sleep(char *line)
 {
-	can_sleep = true;
+	can_sleep = false;
+	can_sleep_count = 1; // sleep next second tick
 
 	SerialDEBUG.print("can sleep ");
 	SerialDEBUG.println(can_sleep);
+	SerialDEBUG.print("sleep_count ");
+	SerialDEBUG.println(can_sleep_count);
 
 	return 0;
 }
@@ -1962,6 +1989,8 @@ int cmd_sample(char *line)
 
 int cmd_set(char *line)
 {
+	char_80 txt;
+
 	SerialDEBUG.println();
 	SerialDEBUG.print(__FILE__);
 	SerialDEBUG.print(" ");
@@ -2008,6 +2037,10 @@ int cmd_set(char *line)
 	SerialDEBUG.print("sample rate : ");
 	SerialDEBUG.print(sampleRate.read());
 	SerialDEBUG.println(" ms ");
+
+	SerialDEBUG.print("deployment text : ");
+	deployment_text.read(&txt);
+	SerialDEBUG.println(txt.txt);
 
 	return 0;
 }
@@ -2059,6 +2092,54 @@ int cmd_file(char *line)
 	char_80 txt;
 	file_name_template.read(&txt);
 	SerialDEBUG.println(txt.txt);
+
+	return 0;
+}
+
+static const char text[] = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed sollicitudin tempor ex et sagittis. Sed feugiat justo ac dui posuere, in porta odio aliquet. Vestibulum dignissim malesuada lacus eu consectetur. Fusce sed varius nibh. Nulla lacinia ipsum non porttitor auctor. Aenean eget eros pharetra, fringilla ipsum eget, pharetra turpis. Suspendisse vitae leo id orci consectetur faucibus. Praesent elementum ex eget venenatis consequat.\n"
+"Donec hendrerit porta nisl, eget commodo nisl tincidunt non. Nam eleifend auctor lectus at euismod. Praesent maximus, purus quis molestie pellentesque, dui lectus tincidunt elit, vel pharetra arcu felis luctus lacus. Integer iaculis felis sed fringilla suscipit. Pellentesque dapibus, magna vitae molestie placerat, nulla odio elementum purus, at condimentum est tortor et mi. Duis eu lacus sit amet nisl feugiat consequat. Donec condimentum eu enim vel tempus. Nam dapibus urna quis dolor sodales venenatis.";
+
+int cmd_sz(char *line)
+{
+#ifdef XMODEM
+	xmodem.begin(SerialDEBUG, XModem::ProtocolType::XMODEM);
+
+	while(1)
+	{
+		xmodem.send((byte *)text, strlen(text));
+	}
+#endif
+	if (line)
+	{
+		SerialDEBUG.println("Waiting 1 sec, start receive");
+
+		delay(1000);
+		sendzrqinit();
+		delay(200);
+		fout.open(line, O_RDONLY);
+		wcs(line);
+		saybibi();
+	}
+	else
+	{
+		SerialDEBUG.println("enter file name");
+	}
+
+	return 0;
+}
+
+int cmd_rz(char *line)
+{
+    if (wcreceive(0, 0))
+    {
+    	SerialDEBUG.println("zmodem transfer failed");
+    }
+    else
+    {
+    	SerialDEBUG.println("zmodem transfer successful");
+    }
+    fout.sync();
+	fout.close();
 
 	return 0;
 }
@@ -2326,7 +2407,7 @@ void loop()
 		{
 			print_date(&now_tm);
 
-			SerialDEBUG.println(" RTC interrupt");
+			SerialDEBUG.println(" RTC match (seconds = 0)");
 		}
 		// Sync file, TODO: do this less often or maybe not at all...
 		if (binFile.isOpen())
@@ -2395,11 +2476,23 @@ void loop()
 #endif
 
 	// write data to card if we have filled more than 1/2 the buffer
-	int32_t to_write = (int32_t)sample_ready - (int32_t)sample_write_sd;
-	uint32_t size_2 = sizeof(data_buffer)/2;
-	if (to_write < 0)
+	int32_t to_write;
+	int32_t size_2 = sizeof(data_buffer)/2;
+
+	if (sample_ready >= 0)
 	{
-		to_write += sizeof(data_buffer);
+		if (sample_ready >= sample_write_sd)
+		{
+			to_write = (int32_t)sample_ready - (int32_t)sample_write_sd;
+		}
+		else
+		{
+			to_write = (int32_t)sample_ready - (int32_t)sample_write_sd + sizeof(data_buffer);
+		}
+	}
+	else
+	{
+		to_write = 0;
 	}
 	if (tick)
 	{
@@ -2439,7 +2532,7 @@ void loop()
 
 			print_date(&now_tm);
 
-			SerialDEBUG.print(" sample read ");
+			SerialDEBUG.print(" sample ready ");
 
 			SerialDEBUG.print(sample_ready);
 			SerialDEBUG.print(" data ");
@@ -2529,6 +2622,10 @@ void loop()
 	}
 	if (adc_convert)
 	{
+#ifdef ADAFRUIT_ITSYBITSY_M0
+		dotstar_send(0x02010000); // BLUE on
+#endif
+
 		if (debug >= 2)
 		{
 			SerialDEBUG.println("adc_conversion");
