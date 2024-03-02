@@ -19,11 +19,6 @@
 #include "flash_config.h"
 #endif
 
-#ifdef XMODEM
-#include <XModem.h>
-XModem xmodem;
-#endif
-
 //#include "zmodem_config.h"
 
 #include "zmodem.h"
@@ -47,6 +42,7 @@ int cmd_start(char *line);
 int cmd_stop(char *line);
 int cmd_starttime(char *line);
 int cmd_startlater(char *line);
+int cmd_startdetect(char *line);
 int cmd_set(char *line);
 int cmd_adc(char *line);
 int cmd_sample(char *line);
@@ -58,11 +54,10 @@ int cmd_burst(char *line);
 int cmd_sz(char *line);
 int cmd_rz(char *line);
 
-enum RUN_MODE {RUN_MODE_STOP, RUN_MODE_RUN, RUN_MODE_START_LATER};
+enum RUN_MODE {RUN_MODE_STOP, RUN_MODE_DETECT, RUN_MODE_RUN, RUN_MODE_START_LATER};
 
 typedef struct {char txt[80];} char_80;
 
-FlashStorage(adc_reg1, uint8_t);
 FlashStorage(adc_reg2, uint8_t);
 FlashStorage(adc_reg3, uint8_t);
 
@@ -100,6 +95,7 @@ CMD cmds[] =
 		  {"startnow",   cmd_start,      "start sampling now"},
 		  {"starttime",  cmd_starttime,  "set/display start time"},
 		  {"startlater", cmd_startlater, "start sampling at starttime"},
+		  {"startdet",   cmd_startdetect, "start sampling when connected to load cell"},
 		  {"stop",       cmd_stop,       "start stop sampling"},
 
 		  {"set",        cmd_set,        "display settings"},
@@ -330,20 +326,20 @@ void hexdump(
 
     if (byteCount == 0)
     {
-        out_stream.println("Byte count is 0 (hexdump).");
+        out_stream.printf("Byte count is 0 (hexdump).\r\n");
         for (uint8_t i = 0; i < linefeeds; ++i)
         {
-            out_stream.println();
+            out_stream.printf("\r\n");
         }
         return;
     }
 
     if (data == nullptr)
     {
-        out_stream.println("Data nullpointer (hexdump).");
+        out_stream.printf("Data nullpointer (hexdump).\r\n");
         for (uint8_t i = 0; i < linefeeds; ++i)
         {
-            out_stream.println();
+            out_stream.printf("\r\n");
         }
         return;
     }
@@ -354,7 +350,7 @@ void hexdump(
         {
             out_stream.printf("Showing addresses with simulated offset 0x%02X (%u).\n", offset, offset);
         }
-        out_stream.println();
+        out_stream.printf("\r\n");
 
         // Output header
         out_stream.print("     ");
@@ -375,7 +371,7 @@ void hexdump(
             }
             out_stream.printf(" --");
         }
-        out_stream.println();
+        out_stream.printf("\r\n");
     }
 
     // Output data
@@ -406,7 +402,7 @@ void hexdump(
             ++lineNr;
             if (lineNr > 1)
             {
-                out_stream.println();
+                out_stream.printf("\r\n");
             }
             // Write address label
             out_stream.printf("%04X:", address & 0xFFF0);
@@ -418,10 +414,10 @@ void hexdump(
         out_stream.printf(" %02X", data[i]);
         ++address;
     }
-    out_stream.println();
+    out_stream.printf("\r\n");
     for (uint8_t i = 0; i < linefeeds; ++i)
     {
-        out_stream.println();
+        out_stream.printf("\r\n");
     }
 }
 
@@ -456,8 +452,16 @@ const uint8_t channel_config_reg0[] = {ADS122C04_MUX_AIN0_AIN1 | ADS122C04_GAIN_
 									   ADS122C04_MUX_AIN2_AVSS | ADS122C04_GAIN_1 | ADS122C04_PGA_ENABLED,
 										0xff};
 */
-
+/*
 const uint8_t channel_config_reg0[] = {ADS122C04_MUX_AIN0_AIN1 | ADS122C04_GAIN_128 | ADS122C04_PGA_ENABLED,
+										0xff};
+*/
+const uint8_t channel_config_reg0[] = {ADS122C04_MUX_AIN0_AVSS | ADS122C04_GAIN_1 | ADS122C04_PGA_ENABLED,
+									   ADS122C04_MUX_AIN2_AIN3 | ADS122C04_GAIN_1 | ADS122C04_PGA_ENABLED,
+										0xff};
+
+const uint8_t channel_config_reg1[] = {ADS122C04_DATA_RATE_20SPS | ADS122C04_OP_MODE_NORMAL | ADS122C04_CONVERSION_MODE_SINGLE_SHOT | ADS122C04_VREF_INTERNAL | ADS122C04_TEMP_SENSOR_OFF,
+									   ADS122C04_DATA_RATE_20SPS | ADS122C04_OP_MODE_NORMAL | ADS122C04_CONVERSION_MODE_SINGLE_SHOT | ADS122C04_VREF_EXT_REF_PINS | ADS122C04_TEMP_SENSOR_OFF,
 										0xff};
 
 /*
@@ -620,13 +624,80 @@ bool run_sample = false;
 
 uint8_t *sample_write_addr;
 
+uint8_t adc_detect_input(void)
+{
+	// detect when the strain gauge is connected, by outputting a current on one of the bride points and seeing if it floats high
+
+	unsigned char data_buffer[3] = {0, 0, 0};
+	int32_t data;
+	uint32_t timer = 0;
+
+	digitalWrite(ADC_PWR_PIN, 1);
+	delay(10);
+
+	i2c_master_adc_cmd_reg(ADS122C04_WRITE_CMD(ADS122C04_CONFIG_0_REG), ADS122C04_MUX_AIN0_AIN1 | ADS122C04_GAIN_1 | ADS122C04_PGA_DISABLED);
+	i2c_master_adc_cmd_reg(ADS122C04_WRITE_CMD(ADS122C04_CONFIG_1_REG), ADS122C04_DATA_RATE_20SPS | ADS122C04_CONVERSION_MODE_SINGLE_SHOT | ADS122C04_VREF_INTERNAL);
+
+	// turn on the 10uA burn out current
+	i2c_master_adc_cmd_reg(ADS122C04_WRITE_CMD(ADS122C04_CONFIG_2_REG), ADS122C04_BURN_OUT_CURRENT_ON | ADS122C04_IDAC_CURRENT_OFF);
+	i2c_master_adc_cmd_reg(ADS122C04_WRITE_CMD(ADS122C04_CONFIG_3_REG), ADS122C04_IDAC1_DISABLED | ADS122C04_IDAC2_DISABLED);
+
+	// start the sample
+	i2c_master_adc_cmd(ADS122C04_START_CMD);
+
+	// timeout is 60000 for 48 MHz and 6400 for 8 MHz
+
+	while(digitalRead(ADC_INT) && (timer < 60000))
+	{
+		timer++;
+	}
+	i2c_master_adc_rdata(3, data_buffer);
+
+	data = data_buffer[0];
+	if (data > 128) // sign extend
+	{
+		data = data | 0xffffff00;
+	}
+	data |= (data << 8) + data_buffer[1];
+	data |= (data << 8) + data_buffer[2];
+
+	i2c_master_adc_cmd(ADS122C04_RESET_CMD);
+	delay(10);
+	digitalWrite(ADC_PWR_PIN, 0);
+	delay(10);
+
+	SerialDEBUG.printf("ADC DETECT %d timer %d : ", data, timer);
+
+	uint8_t ret = 1;
+
+	if (timer >= 60000)
+	{
+		SerialDEBUG.printf("timeout\r\n");
+
+		ret = -1;
+	}
+
+	if (data == 8388607)
+	{
+		SerialDEBUG.printf("disconnected\r\n");
+
+		ret = 0;
+	}
+	else
+	{
+		SerialDEBUG.printf("connected\r\n");
+	}
+
+	return ret;
+}
+
 void adc_setup(int ch)
 {
 	// i2c_master_adc_cmd(ADS122C04_RESET_CMD); // reset resets the sample count, reset only at startup
 
 	// setup the 4 config registers
 	i2c_master_adc_cmd_reg(ADS122C04_WRITE_CMD(ADS122C04_CONFIG_0_REG), channel_config_reg0[ch]);
-	i2c_master_adc_cmd_reg(ADS122C04_WRITE_CMD(ADS122C04_CONFIG_1_REG), adc_reg1.read());
+	i2c_master_adc_cmd_reg(ADS122C04_WRITE_CMD(ADS122C04_CONFIG_1_REG), channel_config_reg1[ch]);
 
 	i2c_master_adc_cmd_reg(ADS122C04_WRITE_CMD(ADS122C04_CONFIG_2_REG), adc_reg2.read());
 	i2c_master_adc_cmd_reg(ADS122C04_WRITE_CMD(ADS122C04_CONFIG_3_REG), adc_reg3.read());
@@ -696,7 +767,7 @@ void TC5_Handler (void)
 	// Overflow in count up mode every timer period
 	if (TC5->COUNT16.INTFLAG.bit.MC0)
 	{
-		if ((adc_reg1.read() & ADS122C04_CONVERSION_MODE_CONTINUOUS) == 0)
+		if ((channel_config_reg1[0] & ADS122C04_CONVERSION_MODE_CONTINUOUS) == 0)
 		{
 			if (adc_read_state != ADC_STOP)
 			{
@@ -890,7 +961,7 @@ void adc_convert_isr(void)
 		}
 
 		// check for continuous mode
-		if ((adc_reg1.read() & ADS122C04_CONVERSION_MODE_CONTINUOUS) != 0)
+		if ((channel_config_reg1[0] & ADS122C04_CONVERSION_MODE_CONTINUOUS) != 0)
 		{
 			sample_ready = sample_write; // last sample is now ready to read
 
@@ -1070,7 +1141,7 @@ void setup()
 
 	SerialDEBUG.begin(115200); // start serial communication at 115200bps
 
-	SerialDEBUG.println(F("ADC122C04 direct " __DATE__ " " __TIME__));
+	SerialDEBUG.printf("ADC122C04 " __DATE__ " " __TIME__ "\r\n");
 
 	i2c_master_init();
 
@@ -1084,10 +1155,7 @@ void setup()
 	ptr++;
 	val4 = *ptr;
 
-	SerialDEBUG.print("chip id: 0x");
-	char buf[33];
-	sprintf(buf, "%08x %08x %08x %08x", val1, val2, val3, val4);
-	SerialDEBUG.println(buf);
+	SerialDEBUG.printf("chip id: 0x%08x %08x %08x %08x\r\n", val1, val2, val3, val4);
 
 #ifdef SD_CAR_DET_PIN
 	pinMode(SD_CAR_DET_PIN, INPUT_PULLUP);
@@ -1113,8 +1181,7 @@ void setup()
 	pinMode(ADC_PWR_PIN, OUTPUT);
 	digitalWrite(ADC_PWR_PIN, 1); // start powered up
 
-	SerialDEBUG.print(F("SystemClock "));
-	SerialDEBUG.println(SystemCoreClock);
+	SerialDEBUG.printf("SystemClock %d\r\n", SystemCoreClock);
 
 	// attachInterrupt(ADC_INT, adc_convert_isr, FALLING);
 #ifdef SD_CAR_DET_PIN
@@ -1124,15 +1191,25 @@ void setup()
     FsDateTime::setCallback(dateTime);
 
     // Setup the RTC frequency correction
-	SerialDEBUG.print(F("fcorr "));
+	SerialDEBUG.printf("fcorr %d\r\n", fcorr_set.read());
 
 	RTC->MODE2.FREQCORR.reg = fcorr_set.read();
-	SerialDEBUG.println(fcorr_set.read());
 
-	// Setup the sample rate, default to 1 sample/second (1000 ms)
+	// Setup the sample rate, default to 1 sample/second (2000 ms)
 	if (sampleRate.read() == 0)
 	{
-		sampleRate.write(150);
+		sampleRate.write(2000);
+
+		uint8_t reg2 = ADS122C04_BURN_OUT_CURRENT_OFF | ADS122C04_IDAC_CURRENT_1000_UA;
+#if BYTES_PER_SAMPLE == 6
+		reg2 |= ADS122C04_CRC_CRC16_ENABLED | ADS122C04_DCNT_ENABLE;
+#elif BYTES_PER_SAMPLE == 5
+		reg2 |= ADS122C04_CRC_CRC16_ENABLED;
+#elif BYTES_PER_SAMPLE == 4
+		reg2 |= ADS122C04_DCNT_ENABLE;
+#endif
+		adc_reg2.write(reg2);
+		adc_reg3.write(ADS122C04_IDAC1_AIN1 | ADS122C04_IDAC2_DISABLED);
 	}
 	if (nburst.read() == 0)
 	{
@@ -1144,7 +1221,6 @@ void setup()
 	// tcStartCounter(); //starts the timer
 
 	debug = debug_set.read();
-	debug = 1;
 
 	// if mode is start-later, load with start time, otherwise alarm every minute
 	if (run_mode.read() == RUN_MODE_START_LATER)
@@ -1159,9 +1235,9 @@ void setup()
 
 		rtc.enableAlarm(rtc.MATCH_YYMMDDHHMMSS);
 
-		SerialDEBUG.print(F("Start Later Mode : "));
+		SerialDEBUG.printf("Start Later Mode : ");
 		print_date(&tm_elements);
-		SerialDEBUG.println();
+		SerialDEBUG.printf("\r\n");
 	}
 	else
 	{
@@ -1172,25 +1248,9 @@ void setup()
 	// RTC alarm
 	rtc.attachInterrupt(rtc_int);
 
-	if (adc_reg1.read() == 0)
-	{
-		adc_reg1.write(ADS122C04_DATA_RATE_20SPS | ADS122C04_OP_MODE_NORMAL | ADS122C04_CONVERSION_MODE_SINGLE_SHOT | ADS122C04_VREF_EXT_REF_PINS | ADS122C04_TEMP_SENSOR_OFF);
-
-#if BYTES_PER_SAMPLE == 6
-		adc_reg2.write(ADS122C04_DCNT_ENABLE | ADS122C04_CRC_CRC16_ENABLED | ADS122C04_BURN_OUT_CURRENT_OFF | ADS122C04_IDAC_CURRENT_OFF);
-#elif BYTES_PER_SAMPLE == 5
-		adc_reg2.write(ADS122C04_CRC_CRC16_ENABLED | ADS122C04_BURN_OUT_CURRENT_OFF | ADS122C04_IDAC_CURRENT_OFF);
-#elif BYTES_PER_SAMPLE == 3
-		adc_reg2.write(ADS122C04_BURN_OUT_CURRENT_OFF | ADS122C04_IDAC_CURRENT_OFF);
-#endif
-		adc_reg3.write(ADS122C04_IDAC1_DISABLED | ADS122C04_IDAC2_DISABLED);
-	}
-	SerialDEBUG.print(F("ADC REG1 : 0x"));
-	SerialDEBUG.println(adc_reg1.read(), HEX);
-
 	if (i2c_master_adc_cmd(ADS122C04_RESET_CMD) == 0)
 	{
-		SerialDEBUG.println("ERROR: ADC did not respond");
+		SerialDEBUG.printf("ERROR: ADC did not respond\r\n");
 	}
 
 	/* setup the logging file */
@@ -1209,8 +1269,7 @@ void setup()
 		file_name_template.write(*p);
 	}
 	file_name_template.read(&file_name_template_mem);
-	SerialDEBUG.print("file template : ");
-	SerialDEBUG.println(file_name_template_mem.txt);
+	SerialDEBUG.printf("file template : %s\r\n", file_name_template_mem.txt);
 
 	/* read setup commands from file */
 
@@ -1221,40 +1280,37 @@ void setup()
 	{
 		if (!flash.begin(SD_CONFIG))
 		{
-			SerialDEBUG.println("sd.begin failed");
+			SerialDEBUG.printf("sd.begin failed\r\n");
 		}
 		else
 		{
-			SerialDEBUG.print("Fat Type : ");
-			SerialDEBUG.println(flash.vol()->fatType());
+			SerialDEBUG.printf("Fat Type : %d\r\n", flash.vol()->fatType());
 		}
 	}
 	else
 	{
-		SerialDEBUG.println("no card");
+		SerialDEBUG.printf("no card\r\n");
 	}
 #else
 	  // Initialize flash library and check its chip ID.
 	  if (!flash.begin())
 	  {
-		  SerialDEBUG.println("Error, failed to initialize flash chip!");
+		  SerialDEBUG.printf("Error, failed to initialize flash chip!\r\n");
 	  }
 	  else
 	  {
-		  SerialDEBUG.print("Flash chip JEDEC ID: 0x");
-		  SerialDEBUG.println(flash.getJEDECID(), HEX);
-		  Serial.print(F("Flash size: ")); Serial.print(flash.size() / 1024); Serial.println(F(" KB"));
+		  SerialDEBUG.printf("Flash chip JEDEC ID: 0x%04x", flash.getJEDECID());
+		  SerialDEBUG.printf("Flash size: %d KB\r\n", flash.size() / 1024);
 	  }
 	  // First call begin to mount the filesystem.  Check that it returns true
 	  // to make sure the filesystem was mounted.
 	  if (!fatfs.begin(&flash))
 	  {
-		  SerialDEBUG.println("Error, failed to mount newly formatted filesystem!");
-		  SerialDEBUG.println("Was the flash chip formatted with the fatfs_format example?");
+		  SerialDEBUG.printf("Error, failed to mount newly formatted filesystem!\r\n");
 	  }
 	  else
 	  {
-		  SerialDEBUG.println("Mounted filesystem!");
+		  SerialDEBUG.printf("Mounted filesystem!\r\n");
 	  }
 
 #endif
@@ -1265,8 +1321,7 @@ void setup()
 	// check for open error
 	if (binFile.isOpen())
 	{
-		SerialDEBUG.println();
-		SerialDEBUG.println("CONFIG.TXT file .... ");
+		SerialDEBUG.printf("\r\nCONFIG.TXT file .... ");
 
 		// read lines from the file
 		while ((n = binFile.fgets(line, sizeof(line))) > 0)
@@ -1276,9 +1331,8 @@ void setup()
 				// remove '\n'
 				line[n-1] = 0;
 
-				SerialDEBUG.print("file line : ");
+				SerialDEBUG.printf("file line : %s\r\n", line);
 				// replace next line with LCD call to display line
-				SerialDEBUG.println(line);
 
 				executeCommand(line);
 			}
@@ -1291,12 +1345,11 @@ void setup()
 
 		binFile.close();
 
-		SerialDEBUG.println("... end CONFIG.TXT file");
-		SerialDEBUG.println();
+		SerialDEBUG.printf("... end CONFIG.TXT file\r\n\n");
 	}
 	else
 	{
-		SerialDEBUG.println("could not open CONFIG.TXT file");
+		SerialDEBUG.printf("could not open CONFIG.TXT file\r\n");
 	}
 
 #ifdef ADAFRUIT_ITSYBITSY_M0
@@ -1328,31 +1381,9 @@ void setup()
 
 int line_idx = 0;
 
-void print2digits(int number)
-{
-	if (number < 10)
-	{
-	  SerialDEBUG.print(F("0")); // print a 0 before if the number is < than 10
-	}
-	SerialDEBUG.print(number);
-}
-
 void print_date(tm *t)
 {
-	// Print date...
-	print2digits(t->tm_year + 1900);
-	SerialDEBUG.print(F("-"));
-	print2digits(t->tm_mon+1);
-	SerialDEBUG.print(F("-"));
-	print2digits(t->tm_mday);
-	SerialDEBUG.print(F(" "));
-
-	// ...and time
-	print2digits(t->tm_hour);
-	SerialDEBUG.print(F(":"));
-	print2digits(t->tm_min);
-	SerialDEBUG.print(F(":"));
-	print2digits(t->tm_sec);
+	SerialDEBUG.printf("%d-%02d-%02d %02d:%02d:%02d", t->tm_year + 1900, t->tm_mon+1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec);
 }
 
 void open_bin_file(char *new_name)
@@ -1368,7 +1399,7 @@ void open_bin_file(char *new_name)
 		binFile.sync();
 		if (strcmp(new_name, name_tmp) != 0)
 		{
-			SerialDEBUG.println(F("file was open, create new file"));
+			SerialDEBUG.printf("file was open, create new file\t\n");
 
 			binFile.close();
 
@@ -1380,20 +1411,18 @@ void open_bin_file(char *new_name)
 	}
 	else
 	{
-		SerialDEBUG.println(F("file not open, append"));
+		SerialDEBUG.printf("file not open, append\r\n");
 
 		binFile.open(new_name, FILE_WRITE);
 
 		binFile.getSFN(name_tmp, sizeof(name_tmp));
-		SerialDEBUG.print("short file name after open : ");
-		SerialDEBUG.println(name_tmp);
+		SerialDEBUG.printf("short file name after open : %s\r\n", name_tmp);
 
 		can_sleep = false;
 		can_sleep_count = 5;
 	}
 
-	SerialDEBUG.print(F("file pos : "));
-	SerialDEBUG.println(binFile.position());
+	SerialDEBUG.printf("file pos : %d\r\n", binFile.position());
 
 	// write header to start of new file
 	if (binFile.isOpen() && (binFile.position() == 0))
@@ -1406,8 +1435,7 @@ void open_bin_file(char *new_name)
 
 	if (!binFile.isOpen())
 	{
-		SerialDEBUG.print(F("open failed : "));
-		SerialDEBUG.println(new_name);
+		SerialDEBUG.printf("open failed : %s\r\n", new_name);
 
 #ifdef SD_CAR_DET_PIN
 		int det = digitalRead(SD_CAR_DET_PIN);
@@ -1423,27 +1451,26 @@ void open_bin_file(char *new_name)
 
 			if (!flash.begin(SD_CONFIG))
 			{
-				SerialDEBUG.println("sd.begin failed");
+				SerialDEBUG.printf("sd.begin failed\r\n");
 			}
 			else
 			{
-				SerialDEBUG.print("Fat Type : ");
-				SerialDEBUG.println(flash.vol()->fatType());
+				SerialDEBUG.printf("Fat Type : %d\r\n", flash.vol()->fatType());
 			}
 		}
 		else
 		{
-			SerialDEBUG.println("no card");
+			SerialDEBUG.printf("no card\r\n");
 		}
 #else
 		if (!flash.begin())
 		{
-			SerialDEBUG.println("flash.begin failed");
+			SerialDEBUG.printf("flash.begin failed\r\n");
 		}
 	}
 	else
 	{
-		SerialDEBUG.println("no card");
+		SerialDEBUG.printf("no card\r\n");
 	}
 
 #endif
@@ -1461,7 +1488,6 @@ void open_bin_file(char *new_name)
 		p += sprintf(p, "sample rate = %d (ms)\r\n", sampleRate.read());
 		p += sprintf(p, "no. burst = %d\r\n", nburst.read());
 		p += sprintf(p, "bytes per sample = %d\r\n", BYTES_PER_SAMPLE);
-		p += sprintf(p, "ADC REG1 = 0x%02x\r\n", adc_reg1.read());
 		while (channel_config_reg0[ad_ch] != 0xff)
 		{
 			p += sprintf(p, "ADC Channel %2d = 0x%02x\r\n", ad_ch, channel_config_reg0[ad_ch]);
@@ -1484,10 +1510,7 @@ void open_bin_file(char *new_name)
 
 		p += sprintf(p, "chip id : 0x%08x %08x %08x %08x\r\n", val1, val2, val3, val4);
 
-		SerialDEBUG.println(F("Write Hdr:"));
-		SerialDEBUG.println(F("-------------------"));
-		SerialDEBUG.print((char *)hdr);
-		SerialDEBUG.println(F("-------------------"));
+		SerialDEBUG.printf("Write Hdr:\r\n-------------------\r\n%s\r\n-----------------\r\n", hdr);
 
 		binFile.write(hdr, sizeof(hdr));
 		binFile.sync();
@@ -1497,8 +1520,7 @@ void open_bin_file(char *new_name)
 
 	if (binFile.isOpen())
 	{
-		SerialDEBUG.print("File open : ");
-		SerialDEBUG.println(file_name);
+		SerialDEBUG.printf("File open : %s\r\n", file_name);
 	}
 }
 
@@ -1540,20 +1562,18 @@ int executeCommand(char *line)
 		return (*c->cmd_handler)(tok);
 	}
 
-	Serial.println(F("Invalid command. Type \"help\" for more."));
+	Serial.printf("Invalid command. Type \"help\" for more.\r\n");
 
 	return 0;
 }
 
 int cmd_help(char *line)
 {
-	SerialDEBUG.println(F("help command:"));
+	SerialDEBUG.printf("help command:");
 
 	for(int i=0; i<num_commands; i++)
 	{
-		SerialDEBUG.print(cmds[i].cmd_name);
-		SerialDEBUG.print(" : ");
-		SerialDEBUG.println(cmds[i].cmd_help);
+		SerialDEBUG.printf("%-20s : %s\r\n", cmds[i].cmd_name, cmds[i].cmd_help);
 	}
 
 	return 0;
@@ -1574,66 +1594,46 @@ int cmd_regs(char *line)
 
 int cmd_adc(char *line)
 {
-	int new_reg1 = adc_reg1.read();
-	SerialDEBUG.print("adc_reg1 ");
+	uint8_t new_reg1 = channel_config_reg1[0];
 
-	if (line)
-	{
-	    sscanf(line, "%d", &new_reg1);
-
-		adc_reg1.write(new_reg1);
-	}
-
-	new_reg1 = adc_reg1.read();
-	SerialDEBUG.println(new_reg1);
-
-	SerialDEBUG.print(" Mode : ");
-	SerialDEBUG.println(new_reg1 & ADS122C04_OP_MODE_TURBO ? "Turbo" : "Normal");
-	SerialDEBUG.print(" CM : ");
-	SerialDEBUG.println(new_reg1 & ADS122C04_CONVERSION_MODE_CONTINUOUS ? "Continuous" : "Single");
-	SerialDEBUG.print(" VREF : ");
+	SerialDEBUG.printf(" Mode : %s\r\n", new_reg1 & ADS122C04_OP_MODE_TURBO ? "Turbo" : "Normal");
+	SerialDEBUG.printf(" CM : %s\r\n", new_reg1 & ADS122C04_CONVERSION_MODE_CONTINUOUS ? "Continuous" : "Single");
+	SerialDEBUG.printf(" VREF : ");
 	switch ((new_reg1 & 0x6) >> 1)
 	{
 		case 0:
-			SerialDEBUG.println("Internal");
+			SerialDEBUG.printf("Internal\r\n");
 			break;
 		case 1:
-			SerialDEBUG.println("External");
+			SerialDEBUG.printf("External\r\n");
 			break;
 		case 2:
-			SerialDEBUG.println("AVdd/AVss");
+			SerialDEBUG.printf("AVdd/AVss\r\n");
 			break;
 	}
 	// TODO: update for turbo mode rates (x2)
 	const int data_rate[] = {20, 45, 90, 175, 330, 600, 1000};
-	SerialDEBUG.print(" data rate : ");
+
 	int dr = data_rate[(new_reg1 >> 5)];
 	if (new_reg1 & ADS122C04_OP_MODE_TURBO)
 	{
 		dr = dr * 2;
 	}
-	SerialDEBUG.print(dr);
-	SerialDEBUG.println(" SPS");
+	SerialDEBUG.printf(" data rate : %d SPS\r\n", dr);
 
-	SerialDEBUG.print(" Temp Sensor : ");
-	SerialDEBUG.println(new_reg1 & ADS122C04_TEMP_SENSOR_ON);
+	SerialDEBUG.printf(" Temp Sensor : %d\r\n", new_reg1 & ADS122C04_TEMP_SENSOR_ON);
 
 	int new_reg2 = adc_reg2.read();
-	SerialDEBUG.print("adc_reg2 ");
-	SerialDEBUG.println(new_reg2);
+	SerialDEBUG.printf("adc_reg2 : 0x%x\r\n", new_reg2);
 
 	int new_reg3 = adc_reg3.read();
-	SerialDEBUG.print("adc_reg3 ");
-	SerialDEBUG.println(new_reg3);
+	SerialDEBUG.printf("adc_reg3 : 0x%x\r\n", new_reg3);
 
 	// Channels
 	int ad_ch = 0;
 	while (channel_config_reg0[ad_ch] != 0xff)
 	{
-		SerialDEBUG.print("channel ");
-		SerialDEBUG.print(ad_ch);
-		SerialDEBUG.print(" reg0 0x");
-		SerialDEBUG.println(channel_config_reg0[ad_ch], HEX);
+		SerialDEBUG.printf("channel %d reg0 0x%02x reg1 0x%02x\r\n", ad_ch, channel_config_reg0[ad_ch], channel_config_reg1[ad_ch]);
 
 		ad_ch++;
 	}
@@ -1645,7 +1645,16 @@ int cmd_start(char *line)
 {
 	run_mode.write(RUN_MODE_RUN);
 
-	SerialDEBUG.println("set run mode");
+	SerialDEBUG.printf("set run mode\r\n");
+
+	return 0;
+}
+
+int cmd_startdetect(char *line)
+{
+	run_mode.write(RUN_MODE_DETECT);
+
+	SerialDEBUG.printf("set wait for connect load cell mode\r\n");
 
 	return 0;
 }
@@ -1654,7 +1663,7 @@ int cmd_stop(char *line)
 {
 	run_mode.write(RUN_MODE_STOP);
 
-	SerialDEBUG.println("set stop mode");
+	SerialDEBUG.printf("set stop mode\r\n");
 
 	return 0;
 }
@@ -1676,20 +1685,14 @@ int cmd_startlater(char *line)
 
 	rtc.enableAlarm(rtc.MATCH_YYMMDDHHMMSS);
 
-	SerialDEBUG.println("set start_later mode");
+	SerialDEBUG.printf("set start_later mode\r\n");
 
 	// output time when its doing to start
 
 	now = rtc.getEpoch();
 	delta = start_time - now;
 
-	SerialDEBUG.print("start in ");
-	SerialDEBUG.print(delta);
-	SerialDEBUG.print(" (seconds) ");
-	SerialDEBUG.print(delta/3600);
-	SerialDEBUG.print(" (hours) ");
-	SerialDEBUG.print(delta/3600/24);
-	SerialDEBUG.println(" (days)");
+	SerialDEBUG.printf("start in %d (seconds) %d (hours) %d (days)\r\n", delta, delta/3600, delta/3600/24);
 
 	return 0;
 }
@@ -1709,19 +1712,7 @@ int cmd_starttime(char *line)
 
 		sscanf( line, "%2d:%2d:%2d", &h, &m, &s);
 
-		SerialDEBUG.print(F("Set start time : "));
-		SerialDEBUG.print(yr, DEC);
-		SerialDEBUG.print('-');
-		SerialDEBUG.print(mnth, DEC);
-		SerialDEBUG.print('-');
-		SerialDEBUG.print(d, DEC);
-		SerialDEBUG.print(' ');
-		SerialDEBUG.print(h, DEC);
-		SerialDEBUG.print(':');
-		SerialDEBUG.print(m, DEC);
-		SerialDEBUG.print(':');
-		SerialDEBUG.print(s, DEC);
-		SerialDEBUG.println();
+		SerialDEBUG.printf("Set start time : %d-%02d-%02d %02d:%02d:%02d\r\n", yr, mnth, d, h, m, s);
 
 		tm_elements.tm_year = yr - 1900;
 		tm_elements.tm_mon = mnth - 1;
@@ -1739,9 +1730,9 @@ int cmd_starttime(char *line)
 
 	gmtime_r(&start_time, &tm_elements);
 
-	SerialDEBUG.print("Start time : ");
+	SerialDEBUG.printf("Start time : ");
 	print_date(&tm_elements);
-	SerialDEBUG.println();
+	SerialDEBUG.printf("\r\n");
 
 	return 0;
 }
@@ -1755,32 +1746,19 @@ int cmd_time(char *line)
 
 	if (line)
 	{
-		SerialDEBUG.print(F("args : "));
-		SerialDEBUG.print(line);
+		SerialDEBUG.printf("args : %s ", line);
 
 		int yr, mnth, d, h, m, s;
 
 		sscanf( line, "%4d-%2d-%2d", &yr, &mnth, &d);
 
 		line = strtok(NULL, " ");
-		SerialDEBUG.print(" ");
-		SerialDEBUG.println(line);
+
+		SerialDEBUG.printf(" %line\r\n", line);
 
 		sscanf( line, "%2d:%2d:%2d", &h, &m, &s);
 
-		SerialDEBUG.print(F("Set time : "));
-		SerialDEBUG.print(yr, DEC);
-		SerialDEBUG.print('-');
-		SerialDEBUG.print(mnth, DEC);
-		SerialDEBUG.print('-');
-		SerialDEBUG.print(d, DEC);
-		SerialDEBUG.print(' ');
-		SerialDEBUG.print(h, DEC);
-		SerialDEBUG.print(':');
-		SerialDEBUG.print(m, DEC);
-		SerialDEBUG.print(':');
-		SerialDEBUG.print(s, DEC);
-		SerialDEBUG.println();
+		SerialDEBUG.printf("Set time : %d-%02d-%02d %02d:%02d:%02d\r\n", yr, mnth, d, h, m, s);
 
 		now = rtc.getEpoch();
 
@@ -1804,11 +1782,9 @@ int cmd_time(char *line)
 
 		print_date(&t);
 
-		SerialDEBUG.print(" time difference = ");
-		SerialDEBUG.println(set_time - now);
+		SerialDEBUG.printf(" time difference = %d\r\n", set_time - now);
 
-		SerialDEBUG.print("last set time = ");
-		SerialDEBUG.println(set_time - last_set_time, DEC);
+		SerialDEBUG.printf("last set time = %d\r\n", set_time - last_set_time);
 
 		last_set_time = set_time;
 	}
@@ -1817,7 +1793,7 @@ int cmd_time(char *line)
 	gmtime_r(&now, &t);
 
 	print_date(&t);
-	SerialDEBUG.println();
+	SerialDEBUG.printf("\r\n");
 
 	return 0;
 }
@@ -1835,24 +1811,21 @@ int cmd_ls(char *line)
 
 	if (det)
 	{
-		SerialDEBUG.println(F("card detected"));
+		SerialDEBUG.printf("card detected\r\n");
 	}
 	else
 	{
-		SerialDEBUG.println(F("no card detected"));
+		SerialDEBUG.printf("no card detected\r\n");
 	}
 
 #ifndef ADAFRUIT_ITSYBITSY_M0
-	uint8_t ft = flash.vol()->fatType();
-
-	SerialDEBUG.print(F("fattype : "));
-	SerialDEBUG.println(ft);
+	SerialDEBUG.printf("fattype : %d\r\n", flash.vol()->fatType());
 #endif
 
 	  // Open root directory
 	  if (!dir.open("/"))
 	  {
-		  SerialDEBUG.println("dir.open failed");
+		  SerialDEBUG.printf("dir.open failed\r\n");
 	  }
 	  // Open next file in root.
 	  // Warning, openNext starts at the current position of dir so a
@@ -1871,16 +1844,16 @@ int cmd_ls(char *line)
 	      // Indicate a directory.
 	    	SerialDEBUG.write('/');
 	    }
-	    SerialDEBUG.println();
+	    SerialDEBUG.printf("\r\n");
 	    file.close();
 	  }
 	  if (dir.getError())
 	  {
-		  SerialDEBUG.println("openNext failed");
+		  SerialDEBUG.printf("openNext failed\r\n");
 	  }
 	  else
 	  {
-		  SerialDEBUG.println("Done!");
+		  SerialDEBUG.printf("Done!\r\n");
 	  }
 
 //	if (ft != 0)
@@ -1895,7 +1868,6 @@ int cmd_ls(char *line)
 int cmd_debug(char *line)
 {
 	int new_debug = debug;
-	SerialDEBUG.print("debug ");
 
 	if (line)
 	{
@@ -1906,7 +1878,7 @@ int cmd_debug(char *line)
 		debug_set.write(debug);
 	}
 
-	SerialDEBUG.println(debug);
+	SerialDEBUG.printf("debug %d\r\n", debug);
 
 	return 0;
 }
@@ -1914,7 +1886,6 @@ int cmd_debug(char *line)
 int cmd_burst(char *line)
 {
 	int16_t new_burst;
-	SerialDEBUG.print("no. burst ");
 
 	if (line)
 	{
@@ -1923,7 +1894,7 @@ int cmd_burst(char *line)
 		nburst.write(new_burst);
 	}
 
-	SerialDEBUG.println(nburst.read());
+	SerialDEBUG.printf("no. burst %d\r\n", nburst.read());
 
 	return 0;
 }
@@ -1933,10 +1904,7 @@ int cmd_sleep(char *line)
 	can_sleep = false;
 	can_sleep_count = 1; // sleep next second tick
 
-	SerialDEBUG.print("can sleep ");
-	SerialDEBUG.println(can_sleep);
-	SerialDEBUG.print("sleep_count ");
-	SerialDEBUG.println(can_sleep_count);
+	SerialDEBUG.printf("can sleep %d sleep_count %d", can_sleep, can_sleep_count);
 
 	return 0;
 }
@@ -1944,7 +1912,6 @@ int cmd_sleep(char *line)
 int cmd_fcorr(char *line)
 {
 	int new_fcorr = RTC->MODE2.FREQCORR.reg;
-	SerialDEBUG.print("fcorr ");
 
 	if (line)
 	{
@@ -1954,7 +1921,7 @@ int cmd_fcorr(char *line)
 		fcorr_set.write(new_fcorr);
 	}
 
-	SerialDEBUG.println(new_fcorr);
+	SerialDEBUG.printf("fcorr %d\r\n", new_fcorr);
 
 	return 0;
 }
@@ -1962,7 +1929,6 @@ int cmd_fcorr(char *line)
 int cmd_sample(char *line)
 {
 	int new_sampleRate = sampleRate.read();
-	SerialDEBUG.print("sample rate ");
 
 	if (line)
 	{
@@ -1978,11 +1944,11 @@ int cmd_sample(char *line)
 	    }
 	    else
 	    {
-	    	SerialDEBUG.println("minimum sample rate is 2 ms");
+	    	SerialDEBUG.printf("minimum sample rate is 2 ms\r\n");
 	    }
 	}
 
-	SerialDEBUG.println(new_sampleRate);
+	SerialDEBUG.printf("sample rate %d\r\n", new_sampleRate);
 
 	return 0;
 }
@@ -1991,56 +1957,37 @@ int cmd_set(char *line)
 {
 	char_80 txt;
 
-	SerialDEBUG.println();
-	SerialDEBUG.print(__FILE__);
-	SerialDEBUG.print(" ");
-	SerialDEBUG.print(__DATE__);
-	SerialDEBUG.print(" ");
-	SerialDEBUG.println(__TIME__);
-	SerialDEBUG.println();
+	SerialDEBUG.printf("\r\n" __FILE__ " " __DATE__ " " __TIME__ "\r\n");
 
 	time_t start_time = datetime_start.read();
 	tm tm_elements;
 
 	gmtime_r(&start_time, &tm_elements);
 
-	SerialDEBUG.print("Start time : ");
+	SerialDEBUG.printf("Start time : ");
 	print_date(&tm_elements);
-	SerialDEBUG.println();
+	SerialDEBUG.printf("\r\n");
 
 	now = rtc.getEpoch();
 
 	gmtime_r(&now, &now_tm);
 
-	SerialDEBUG.print("clock : ");
+	SerialDEBUG.printf("clock : ");
 	print_date(&now_tm);
-	SerialDEBUG.println();
+	SerialDEBUG.printf("\r\n");
 
-	SerialDEBUG.print("mode : ");
-	SerialDEBUG.println(run_mode.read());
+	SerialDEBUG.printf("mode : %d\r\n", run_mode.read());
+	SerialDEBUG.printf("fcorr : %d\r\n", fcorr_set.read());
+	SerialDEBUG.printf("can sleep : %d\r\n", can_sleep);
+	SerialDEBUG.printf("debug : %d\r\n", debug);
+	SerialDEBUG.printf("number in burst : %d\r\n", nburst.read());
+	SerialDEBUG.printf("current file : %s\r\n", file_name);
+	SerialDEBUG.printf("sample rate : %d (ms)\r\n", sampleRate.read());
 
-	SerialDEBUG.print("fcorr : ");
-	SerialDEBUG.println(fcorr_set.read());
-
-	SerialDEBUG.print("can sleep : ");
-	SerialDEBUG.println(can_sleep);
-
-	SerialDEBUG.print("debug : ");
-	SerialDEBUG.println(debug);
-
-	SerialDEBUG.print("number in burst : ");
-	SerialDEBUG.println(nburst.read());
-
-	SerialDEBUG.print("current file : ");
-	SerialDEBUG.println(file_name);
-
-	SerialDEBUG.print("sample rate : ");
-	SerialDEBUG.print(sampleRate.read());
-	SerialDEBUG.println(" ms ");
-
-	SerialDEBUG.print("deployment text : ");
 	deployment_text.read(&txt);
-	SerialDEBUG.println(txt.txt);
+	SerialDEBUG.printf("deployment text : %s\r\n", txt.txt);
+	file_name_template.read(&txt);
+	SerialDEBUG.printf("file name template: %s\r\n", txt.txt);
 
 	return 0;
 }
@@ -2054,7 +2001,7 @@ int cmd_text(char *line)
 
 	while (line != NULL)
 	{
-		SerialDEBUG.println(line);
+		SerialDEBUG.printf("%s\r\n", line);
 		update = true;
 
 		strcpy(p, line);
@@ -2072,9 +2019,8 @@ int cmd_text(char *line)
 		deployment_text.write(*p_80);
 	}
 
-	SerialDEBUG.print("deployment text : ");
 	deployment_text.read(&txt);
-	SerialDEBUG.println(txt.txt);
+	SerialDEBUG.printf("deployment text : %s\r\n", txt.txt);
 
 	return 0;
 }
@@ -2088,30 +2034,18 @@ int cmd_file(char *line)
 		file_name_template.write(*p);
 	}
 
-	SerialDEBUG.print("file name : ");
 	char_80 txt;
 	file_name_template.read(&txt);
-	SerialDEBUG.println(txt.txt);
+	SerialDEBUG.printf("file name : %s\r\n", txt.txt);
 
 	return 0;
 }
 
-static const char text[] = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed sollicitudin tempor ex et sagittis. Sed feugiat justo ac dui posuere, in porta odio aliquet. Vestibulum dignissim malesuada lacus eu consectetur. Fusce sed varius nibh. Nulla lacinia ipsum non porttitor auctor. Aenean eget eros pharetra, fringilla ipsum eget, pharetra turpis. Suspendisse vitae leo id orci consectetur faucibus. Praesent elementum ex eget venenatis consequat.\n"
-"Donec hendrerit porta nisl, eget commodo nisl tincidunt non. Nam eleifend auctor lectus at euismod. Praesent maximus, purus quis molestie pellentesque, dui lectus tincidunt elit, vel pharetra arcu felis luctus lacus. Integer iaculis felis sed fringilla suscipit. Pellentesque dapibus, magna vitae molestie placerat, nulla odio elementum purus, at condimentum est tortor et mi. Duis eu lacus sit amet nisl feugiat consequat. Donec condimentum eu enim vel tempus. Nam dapibus urna quis dolor sodales venenatis.";
-
 int cmd_sz(char *line)
 {
-#ifdef XMODEM
-	xmodem.begin(SerialDEBUG, XModem::ProtocolType::XMODEM);
-
-	while(1)
-	{
-		xmodem.send((byte *)text, strlen(text));
-	}
-#endif
 	if (line)
 	{
-		SerialDEBUG.println("Waiting 1 sec, start receive");
+		SerialDEBUG.printf("Waiting 1 sec, start receive\r\n");
 
 		delay(1000);
 		sendzrqinit();
@@ -2122,7 +2056,7 @@ int cmd_sz(char *line)
 	}
 	else
 	{
-		SerialDEBUG.println("enter file name");
+		SerialDEBUG.printf("enter file name\r\n");
 	}
 
 	return 0;
@@ -2132,11 +2066,11 @@ int cmd_rz(char *line)
 {
     if (wcreceive(0, 0))
     {
-    	SerialDEBUG.println("zmodem transfer failed");
+    	SerialDEBUG.printf("zmodem transfer failed\r\n");
     }
     else
     {
-    	SerialDEBUG.println("zmodem transfer successful");
+    	SerialDEBUG.printf("zmodem transfer successful\r\n");
     }
     fout.sync();
 	fout.close();
@@ -2152,19 +2086,18 @@ int cmd_format(char *line)
 
 	if (line)
 	{
-		SerialDEBUG.print("Format ");
-		SerialDEBUG.println(line);
+		SerialDEBUG.printf("Format : %s\r\n", line);
 
 		if (strcmp(line, "yes") == 0)
 		{
 #ifdef ADAFRUIT_ITSYBITSY_M0
 			if (!flash.eraseChip())
 			{
-				SerialDEBUG.println("Failed to erase chip!");
+				SerialDEBUG.printf("Failed to erase chip!\r\n");
 			}
 
 			flash.waitUntilReady();
-			SerialDEBUG.println("Successfully erased chip!");
+			SerialDEBUG.printf("Successfully erased chip!\r\n");
 
 			//m_card = sd.card();
 			//fat_format.format(m_card, hdr, &SerialDEBUG);
@@ -2177,7 +2110,7 @@ int cmd_format(char *line)
 	}
 	else
 	{
-		SerialDEBUG.println("Format not done try 'format yes'");
+		SerialDEBUG.printf("Format not done try 'format yes'\r\n");
 	}
 
 	return 0;
@@ -2187,8 +2120,7 @@ int cmd_sync(char *line)
 {
 	binFile.sync();
 
-	SerialDEBUG.print("sync, position ");
-	SerialDEBUG.println(binFile.position());
+	SerialDEBUG.printf("sync, position %d\r\n", binFile.position());
 
 	return 0;
 }
@@ -2204,13 +2136,12 @@ int read_line(char c)
 			{
 				line_idx -= 1;
 			}
-			SerialDEBUG.print(F("\b \b"));
+			SerialDEBUG.printf("\b \b");
 		}
 		else if (c == '\r')
 		{
 			line[line_idx] = 0;
-			SerialDEBUG.print("Line : ");
-			SerialDEBUG.println(line);
+			SerialDEBUG.printf("Line : %s\r\n", line);
 
 			executeCommand(line);
 
@@ -2274,7 +2205,7 @@ void loop()
 		{
 			if (!can_sleep)
 			{
-				SerialDEBUG.println("set can sleep");
+				SerialDEBUG.printf("set can sleep\r\n");
 			}
 			can_sleep = true;
 		}
@@ -2282,8 +2213,7 @@ void loop()
 		if (debug >= 2)
 		{
 			print_date(&now_tm);
-			SerialDEBUG.print(" rtc tick, mode ");
-			SerialDEBUG.println(run_mode.read());
+			SerialDEBUG.printf(" rtc tick, mode %d\r\n", run_mode.read());
 		}
 
 		if (adc_read_state == ADC_STOP)
@@ -2295,19 +2225,18 @@ void loop()
 				//digitalWrite(ADC_PWR_PIN, 1); // power on the ADC
 				//delay(10);
 
-				SerialDEBUG.print("RUN_MODE: adc i2c channel set ");
-				SerialDEBUG.println(current_sample_channel);
+				SerialDEBUG.printf("RUN_MODE: adc i2c channel set %d\r\n", current_sample_channel);
 
 				// TODO: Read ADC122c04 regs here to check setup
 
 				tcDisable();
 				burst = nburst.read();
 
-				if ((adc_reg1.read() & ADS122C04_CONVERSION_MODE_CONTINUOUS) != 0)
+				if ((channel_config_reg1[0] & ADS122C04_CONVERSION_MODE_CONTINUOUS) != 0)
 				{
-					SerialDEBUG.println("Continuous mode");
+					SerialDEBUG.printf("Continuous mode\r\n");
 
-					int new_reg1 = adc_reg1.read();
+					int new_reg1 = channel_config_reg1[0];
 					const int data_rate[] = {20, 45, 90, 175, 330, 600, 1000};
 					int dr = data_rate[(new_reg1 >> 5)];
 					if (new_reg1 & ADS122C04_OP_MODE_TURBO)
@@ -2315,9 +2244,7 @@ void loop()
 						dr = dr * 2;
 					}
 					float drf = 1000/dr;
-					SerialDEBUG.print("Data Rate : ");
-					SerialDEBUG.print(drf);
-					SerialDEBUG.println(" (ms)");
+					SerialDEBUG.printf("Data Rate : %f (ms)\r\n", drf);
 
 					digitalWrite(ADC_PWR_PIN, 1);
 
@@ -2338,7 +2265,7 @@ void loop()
 					}
 					else
 					{
-						SerialDEBUG.println("burst mode");
+						SerialDEBUG.printf("burst mode\r\n");
 
 						tcConfigure(sampleRate.read()); //configure the timer to run at <sampleRate>Hertz
 						tcStartCounter(); //starts the timer
@@ -2349,7 +2276,7 @@ void loop()
 				}
 				else
 				{
-					SerialDEBUG.println("Timer tick mode");
+					SerialDEBUG.printf("Timer tick mode\r\n");
 
 					tcConfigure(sampleRate.read()); //configure the timer to run at <sampleRate>Hertz
 					tcStartCounter(); //starts the timer
@@ -2381,9 +2308,7 @@ void loop()
 		{
 			print_date(&now_tm);
 
-			SerialDEBUG.print(" adc_read_state ");
-
-			SerialDEBUG.println(adc_read_state);
+			SerialDEBUG.printf(" adc_read_state %d\r\n", adc_read_state);
 
 			last_state = adc_read_state;
 		}
@@ -2396,7 +2321,7 @@ void loop()
 		{
 			print_date(&now_tm);
 
-			SerialDEBUG.println(" event_sys_flag");
+			SerialDEBUG.printf(" event_sys_flag\r\n");
 		}
 		event_sys_flag = false;
 	}
@@ -2407,13 +2332,12 @@ void loop()
 		{
 			print_date(&now_tm);
 
-			SerialDEBUG.println(" RTC match (seconds = 0)");
+			SerialDEBUG.printf(" RTC match (seconds = 0)\r\n");
 		}
 		// Sync file, TODO: do this less often or maybe not at all...
 		if (binFile.isOpen())
 		{
-			SerialDEBUG.print("file sync ");
-			SerialDEBUG.println(binFile.position());
+			SerialDEBUG.printf("file sync %d\r\n", binFile.position());
 
 			binFile.flush();
 		}
@@ -2425,14 +2349,23 @@ void loop()
 			rtc.enableAlarm(rtc.MATCH_SS);
 		}
 
+		if ((run_mode.read() == RUN_MODE_DETECT))
+		{
+			if (adc_detect_input() > 0)
+			{
+				print_date(&now_tm);
+				SerialDEBUG.printf(" setting run mode\r\n");
+
+				run_mode.write(RUN_MODE_RUN);
+			}
+		}
 		rtc_alarm_flag = false;
 	}
 	if (missed_sample)
 	{
 		print_date(&now_tm);
 
-		SerialDEBUG.print(" missed sample state ");
-		SerialDEBUG.println(missed_state);
+		SerialDEBUG.printf(" missed sample state %d\r\n", missed_state);
 #ifdef ADAFRUIT_FEATHER_M0
 		digitalWrite(MISSED_SAMPLE_PIN, 1);
 #endif
@@ -2446,19 +2379,17 @@ void loop()
 	{
 		print_date(&now_tm);
 
-		SerialDEBUG.print(" card detect change ");
-		SerialDEBUG.println(det);
+		SerialDEBUG.printf(" card detect change %d\r\n", det);
 
 		if (det)
 		{
 			if (!flash.begin(SD_CONFIG))
 			{
-				SerialDEBUG.println("sd.begin failed");
+				SerialDEBUG.print("sd.begin failed\r\n");
 			}
 			else
 			{
-				SerialDEBUG.print("Fat Type : ");
-				SerialDEBUG.println(flash.vol()->fatType());
+				SerialDEBUG.printf("Fat Type : %d\r\n", flash.vol()->fatType());
 			}
 		}
 		else
@@ -2499,18 +2430,7 @@ void loop()
 		if (debug >= 1)
 		{
 			print_date(&now_tm);
-			SerialDEBUG.print("  ");
-			SerialDEBUG.print(run_sample);
-			SerialDEBUG.print("  sample_write ");
-			SerialDEBUG.print(sample_write);
-			SerialDEBUG.print("  sample_ready ");
-			SerialDEBUG.print(sample_ready);
-			SerialDEBUG.print("  sample_read ");
-			SerialDEBUG.print(sample_read);
-			SerialDEBUG.print("  sample_write_sd ");
-			SerialDEBUG.print(sample_write_sd);
-			SerialDEBUG.print("  to write ");
-			SerialDEBUG.println(to_write);
+			SerialDEBUG.printf(" %d sample_write %d sample_ready %d sample_read %d sample_write_sd %d to %d\r\n", run_sample, sample_write, sample_ready, sample_read, sample_write_sd, to_write);
 		}
 	}
 
@@ -2521,9 +2441,7 @@ void loop()
 
 		print_date(&now_tm);
 
-		SerialDEBUG.print(" sample write sd ");
-
-		SerialDEBUG.println(sample_write_sd);
+		SerialDEBUG.printf(" sample write sd %d\r\n", sample_write_sd);
 
 		if (debug > 0)
 		{
@@ -2532,32 +2450,11 @@ void loop()
 
 			print_date(&now_tm);
 
-			SerialDEBUG.print(" sample ready ");
+			SerialDEBUG.printf(" sample ready %d data", sample_ready);
 
-			SerialDEBUG.print(sample_ready);
-			SerialDEBUG.print(" data ");
+			SerialDEBUG.printf("%d %d %d %d %d %d\r\n", data_buffer[sample_ready], data_buffer[sample_ready+1], data_buffer[sample_ready+2], data_buffer[sample_ready+3], data_buffer[sample_ready+4], data_buffer[sample_ready+5], data_buffer[sample_ready+6]);
 
-			SerialDEBUG.print(data_buffer[sample_ready]);
-			SerialDEBUG.print(" ");
-			SerialDEBUG.print(data_buffer[sample_ready+1]);
-			SerialDEBUG.print(" ");
-			SerialDEBUG.print(data_buffer[sample_ready+2]);
-			SerialDEBUG.print(" ");
-			SerialDEBUG.print(data_buffer[sample_ready+3]);
-			SerialDEBUG.print(" ");
-			SerialDEBUG.print(data_buffer[sample_ready+4]);
-			SerialDEBUG.print(" ");
-			SerialDEBUG.print(data_buffer[sample_ready+5]);
-			SerialDEBUG.print(" next ");
-			SerialDEBUG.print(data_buffer[sample_ready+6]);
-			SerialDEBUG.println(" ....");
-
-			SerialDEBUG.print("Write ");
-			SerialDEBUG.print(sample_write_sd);
-			SerialDEBUG.print(" length ");
-			SerialDEBUG.print(sizeof(data_buffer)/2);
-			SerialDEBUG.print(" file pos ");
-			SerialDEBUG.println(binFile.position());
+			SerialDEBUG.printf("Write %d length %d file pos %d\r\n", sample_write_sd, sizeof(data_buffer)/2, binFile.position());
 		}
 
 		if (sample_write_sd <= 0) // only change file when sample number is zero
@@ -2591,11 +2488,8 @@ void loop()
 
 			if (size_2 != binFile.write(&data_buffer[sample_write_sd], size_2))
 			{
-				SerialDEBUG.print("Write Error ");
-				SerialDEBUG.print(size_2);
 				uint8_t err = binFile.getError();
-				SerialDEBUG.print(" code ");
-				SerialDEBUG.println(err);
+				SerialDEBUG.printf("Write Error %d code %d\r\n", size_2, err);
 			}
 			if (debug >= 1)
 			{
@@ -2628,7 +2522,7 @@ void loop()
 
 		if (debug >= 2)
 		{
-			SerialDEBUG.println("adc_conversion");
+			SerialDEBUG.printf("adc_conversion\r\n");
 		}
 
 		adc_convert = false;
@@ -2640,23 +2534,16 @@ void loop()
 		{
 			if (debug >= 2)
 			{
-				SerialDEBUG.print("sample @ ");
-				SerialDEBUG.print(sample_read);
-				SerialDEBUG.print(" = ");
+				int32_t data;
 
-				SerialDEBUG.print(" count ");
-				SerialDEBUG.print(data_buffer[sample_read]);
-				SerialDEBUG.print(" data ");
-				SerialDEBUG.print(data_buffer[sample_read+1]);
-				SerialDEBUG.print(" ");
-				SerialDEBUG.print(data_buffer[sample_read+2]);
-				SerialDEBUG.print(" ");
-				SerialDEBUG.print(data_buffer[sample_read+3]);
-				SerialDEBUG.print(" CRC ");
-				SerialDEBUG.print(data_buffer[sample_read+4]);
-				SerialDEBUG.print(" ");
-				SerialDEBUG.print(data_buffer[sample_read+5]);
-				SerialDEBUG.println();
+				data = data_buffer[sample_read+1];
+				if (data > 128) // sign extend
+				{
+					data = data | 0xffffff00;
+				}
+				data |= (data << 8) + data_buffer[sample_read+2];
+				data |= (data << 8) + data_buffer[sample_read+3];
+				SerialDEBUG.printf("sample @ %d = %d count %d data %d CRC %d %d\r\n", sample_read, data, data_buffer[sample_read+4], data_buffer[sample_read+5]);
 			}
 
 			sample_read += BYTES_PER_SAMPLE;
