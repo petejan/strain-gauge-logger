@@ -13,6 +13,8 @@
 
 #include "wiring_private.h"
 
+#define SENTRON
+
 #ifdef ARDUINO_ITSYBITSY_M0
 #include <Adafruit_SPIFlash.h>
 // for flashTransport definition
@@ -452,18 +454,27 @@ const uint8_t channel_config_reg0[] = {ADS122C04_MUX_AIN0_AIN1 | ADS122C04_GAIN_
 									   ADS122C04_MUX_AIN2_AVSS | ADS122C04_GAIN_1 | ADS122C04_PGA_ENABLED,
 										0xff};
 */
-/*
+
+#ifndef SENTRON
+/* strain gauge logger */
 const uint8_t channel_config_reg0[] = {ADS122C04_MUX_AIN0_AIN1 | ADS122C04_GAIN_128 | ADS122C04_PGA_ENABLED,
 										0xff};
-*/
+
+const uint8_t channel_config_reg1[] = {ADS122C04_DATA_RATE_20SPS | ADS122C04_OP_MODE_NORMAL | ADS122C04_CONVERSION_MODE_SINGLE_SHOT | ADS122C04_VREF_EXT_REF_PINS | ADS122C04_TEMP_SENSOR_OFF,
+									   0xff};
+#endif
+
+#ifdef SENTRON
 const uint8_t channel_config_reg0[] = {ADS122C04_MUX_AIN0_AVSS | ADS122C04_GAIN_1 | ADS122C04_PGA_ENABLED,
 									   ADS122C04_MUX_AIN2_AIN3 | ADS122C04_GAIN_1 | ADS122C04_PGA_ENABLED,
-										0xff};
+									   0,
+									   0xff};
 
 const uint8_t channel_config_reg1[] = {ADS122C04_DATA_RATE_20SPS | ADS122C04_OP_MODE_NORMAL | ADS122C04_CONVERSION_MODE_SINGLE_SHOT | ADS122C04_VREF_INTERNAL | ADS122C04_TEMP_SENSOR_OFF,
 									   ADS122C04_DATA_RATE_20SPS | ADS122C04_OP_MODE_NORMAL | ADS122C04_CONVERSION_MODE_SINGLE_SHOT | ADS122C04_VREF_EXT_REF_PINS | ADS122C04_TEMP_SENSOR_OFF,
-										0xff};
-
+									   ADS122C04_DATA_RATE_20SPS | ADS122C04_OP_MODE_NORMAL | ADS122C04_CONVERSION_MODE_SINGLE_SHOT | ADS122C04_VREF_INTERNAL | ADS122C04_TEMP_SENSOR_ON,
+									   0xff};
+#endif
 /*
 const uint8_t channel_config_reg0[] = {ADS122C04_MUX_AIN0_AIN1 | ADS122C04_GAIN_1 | ADS122C04_PGA_ENABLED,
 										0xff};
@@ -1199,8 +1210,11 @@ void setup()
 	if (sampleRate.read() == 0)
 	{
 		sampleRate.write(2000);
-
+#ifdef SENTRON
 		uint8_t reg2 = ADS122C04_BURN_OUT_CURRENT_OFF | ADS122C04_IDAC_CURRENT_1000_UA;
+#else
+		uint8_t reg2 = ADS122C04_BURN_OUT_CURRENT_OFF | ADS122C04_IDAC_CURRENT_OFF;
+#endif
 #if BYTES_PER_SAMPLE == 6
 		reg2 |= ADS122C04_CRC_CRC16_ENABLED | ADS122C04_DCNT_ENABLE;
 #elif BYTES_PER_SAMPLE == 5
@@ -1209,7 +1223,11 @@ void setup()
 		reg2 |= ADS122C04_DCNT_ENABLE;
 #endif
 		adc_reg2.write(reg2);
+#ifdef SENTRON
 		adc_reg3.write(ADS122C04_IDAC1_AIN1 | ADS122C04_IDAC2_DISABLED);
+#else
+		adc_reg3.write(ADS122C04_IDAC1_DISABLED | ADS122C04_IDAC2_DISABLED);
+#endif
 	}
 	if (nburst.read() == 0)
 	{
@@ -2543,7 +2561,7 @@ void loop()
 				}
 				data |= (data << 8) + data_buffer[sample_read+2];
 				data |= (data << 8) + data_buffer[sample_read+3];
-				SerialDEBUG.printf("sample @ %d = %d count %d data %d CRC %d %d\r\n", sample_read, data, data_buffer[sample_read+4], data_buffer[sample_read+5]);
+				SerialDEBUG.printf("sample @ %4d = count %3d data %8ld CRC %3d %3d\r\n", sample_read, data_buffer[sample_read], data, data_buffer[sample_read+4], data_buffer[sample_read+5]);
 			}
 
 			sample_read += BYTES_PER_SAMPLE;
