@@ -13,7 +13,7 @@
 
 #include "wiring_private.h"
 
-#define SENTRON
+//#define SENTRON
 
 #ifdef ARDUINO_ITSYBITSY_M0
 #include <Adafruit_SPIFlash.h>
@@ -85,38 +85,38 @@ void * findCommand(char * command);
 CMD cmds[] =
 {
 		  {"---",        NULL,         "setup commands"},
-		  {"time",       cmd_time,       "display/set time <YYYY-MM-DD hh:mm:ss>"},
-		  {"fcorr",      cmd_fcorr,      "display/set fcorr reg"},
-		  {"adc",        cmd_adc,        "display/set adc <rate> <gain>"},
-		  {"nburst",     cmd_burst,      "number of samples to burst sample"},
-		  {"samplerate", cmd_sample,     "display/set sample rate"},
+		  {"time",       cmd_time,        "display/set time <YYYY-MM-DD hh:mm:ss>"},
+		  {"fcorr",      cmd_fcorr,       "display/set fcorr reg"},
+		  {"adc",        cmd_adc,         "display/set adc <rate> <gain>"},
+		  {"nburst",     cmd_burst,       "number of samples to burst sample"},
+		  {"samplerate", cmd_sample,      "display/set sample rate"},
 
-		  {"text",       cmd_text,       "display/set deployment text note"},
+		  {"text",       cmd_text,        "display/set deployment text note"},
 
 		  {"---",        NULL,         "start/stop commands"},
-		  {"startnow",   cmd_start,      "start sampling now"},
-		  {"starttime",  cmd_starttime,  "set/display start time"},
-		  {"startlater", cmd_startlater, "start sampling at starttime"},
+		  {"startnow",   cmd_start,       "start sampling now"},
+		  {"starttime",  cmd_starttime,   "set/display start time"},
+		  {"startlater", cmd_startlater,  "start sampling at starttime"},
 		  {"startdet",   cmd_startdetect, "start sampling when connected to load cell"},
-		  {"stop",       cmd_stop,       "start stop sampling"},
+		  {"stop",       cmd_stop,        "start stop sampling"},
 
-		  {"set",        cmd_set,        "display settings"},
+		  {"set",        cmd_set,         "display settings"},
 
 		  {"---",        NULL,         "debug commands"},
-		  {"sleep",      cmd_sleep,      "set can sleep"},
-		  {"debug",      cmd_debug,      "set debug level"},
-		  {"regs",       cmd_regs,       "display all SAMD21 regs"},
+		  {"sleep",      cmd_sleep,       "set can sleep"},
+		  {"debug",      cmd_debug,       "set debug level"},
+		  {"regs",       cmd_regs,        "display all SAMD21 regs"},
 
 		  {"---",        NULL,         "file commands"},
-		  {"ls",         cmd_ls,         "display card file list"},
-		  {"file",       cmd_file,       "display/set file name %Y-%M-%DT%H%M.BIN"},
-		  {"format",     cmd_format,     "format card 'format yes' to format"},
-		  {"sync",       cmd_sync,  	 "sync file"},
-		  {"sz",         cmd_sz,  	     "send file"},
-		  {"rz",         cmd_rz,  	     "receive file"},
+		  {"ls",         cmd_ls,          "display card file list"},
+		  {"file",       cmd_file,        "display/set file name %Y-%M-%DT%H%M.BIN"},
+		  {"format",     cmd_format,      "format card 'format yes' to format"},
+		  {"sync",       cmd_sync,  	  "sync file"},
+		  {"sz",         cmd_sz,  	      "send file"},
+		  {"rz",         cmd_rz,  	      "receive file"},
 
 		  {"---",        NULL,         "help"},
-		  {"help",       cmd_help,       "command help, this message"}
+		  {"help",       cmd_help,        "command help, this message"}
 };
 
 /* Create an rtc object */
@@ -621,9 +621,11 @@ volatile bool waiting_for_sample = false;
 volatile int16_t sample_write = -BYTES_PER_SAMPLE;
 volatile int16_t sample_ready = -BYTES_PER_SAMPLE;
 
-//uint8_t data_buffer[512 * BYTES_PER_SAMPLE * 2];
+#ifdef SENTRON
+uint8_t data_buffer[512 * BYTES_PER_SAMPLE * 3];
+#else
 uint8_t data_buffer[512 * 6 * 2];
-//uint8_t data_buffer[32 * BYTES_PER_SAMPLE * 2];
+#endif
 
 time_t now;
 struct tm now_tm;
@@ -816,8 +818,8 @@ void TC5_Handler (void)
 				if (adc_read_state == WAIT_PWR_TICK)
 				{
 					// Return the SDA pin back to I2C
-					//PORT->Group[g_APinDescription[SCL].ulPort].PINCFG[g_APinDescription[SCL].ulPin].bit.PMUXEN = 1;
-					//PORT->Group[g_APinDescription[SDA].ulPort].PINCFG[g_APinDescription[SDA].ulPin].bit.PMUXEN = 1;
+					PORT->Group[g_APinDescription[SCL].ulPort].PINCFG[g_APinDescription[SCL].ulPin].bit.PMUXEN = 1;
+					PORT->Group[g_APinDescription[SDA].ulPort].PINCFG[g_APinDescription[SDA].ulPin].bit.PMUXEN = 1;
 
 					digitalWrite(ADC_PWR_PIN, 1);
 #ifdef ADAFRUIT_FEATHER_M0
@@ -969,12 +971,13 @@ void adc_convert_isr(void)
 		if (sample_write_addr)
 		{
 			i2c_master_adc_rdata(BYTES_PER_SAMPLE, sample_write_addr);
+
+			sample_ready = sample_write; // last sample is now ready to read
 		}
 
 		// check for continuous mode
 		if ((channel_config_reg1[0] & ADS122C04_CONVERSION_MODE_CONTINUOUS) != 0)
 		{
-			sample_ready = sample_write; // last sample is now ready to read
 
 			adc_read_state = WAIT_ADC;
 
@@ -1029,8 +1032,8 @@ void adc_convert_isr(void)
 
 						// Return the SDA pin back to GPIO, makes sure lines are high
 						// could also wait for bus IDLE
-						//PORT->Group[g_APinDescription[SCL].ulPort].PINCFG[g_APinDescription[SCL].ulPin].bit.PMUXEN = 0;
-						//PORT->Group[g_APinDescription[SDA].ulPort].PINCFG[g_APinDescription[SDA].ulPin].bit.PMUXEN = 0;
+						PORT->Group[g_APinDescription[SCL].ulPort].PINCFG[g_APinDescription[SCL].ulPin].bit.PMUXEN = 0;
+						PORT->Group[g_APinDescription[SDA].ulPort].PINCFG[g_APinDescription[SDA].ulPin].bit.PMUXEN = 0;
 					}
 				}
 				else
@@ -1317,7 +1320,7 @@ void setup()
 	  }
 	  else
 	  {
-		  SerialDEBUG.printf("Flash chip JEDEC ID: 0x%04x", flash.getJEDECID());
+		  SerialDEBUG.printf("Flash chip JEDEC ID: 0x%04x\r\n", flash.getJEDECID());
 		  SerialDEBUG.printf("Flash size: %d KB\r\n", flash.size() / 1024);
 	  }
 	  // First call begin to mount the filesystem.  Check that it returns true
@@ -1504,11 +1507,12 @@ void open_bin_file(char *new_name)
 		memset(hdr, 0, sizeof(hdr));
 		p += sprintf(p, "adc122c04 " __DATE__ " " __TIME__ "\r\n");
 		p += sprintf(p, "sample rate = %d (ms)\r\n", sampleRate.read());
+		p += sprintf(p, "bytes per block = %d\r\n", sizeof(data_buffer));
 		p += sprintf(p, "no. burst = %d\r\n", nburst.read());
 		p += sprintf(p, "bytes per sample = %d\r\n", BYTES_PER_SAMPLE);
 		while (channel_config_reg0[ad_ch] != 0xff)
 		{
-			p += sprintf(p, "ADC Channel %2d = 0x%02x\r\n", ad_ch, channel_config_reg0[ad_ch]);
+			p += sprintf(p, "ADC Channel %2d = 0x%02x 0x%02x\r\n", ad_ch, channel_config_reg0[ad_ch], channel_config_reg1[ad_ch]);
 
 			ad_ch++;
 		}
@@ -1528,7 +1532,9 @@ void open_bin_file(char *new_name)
 
 		p += sprintf(p, "chip id : 0x%08x %08x %08x %08x\r\n", val1, val2, val3, val4);
 
-		SerialDEBUG.printf("Write Hdr:\r\n-------------------\r\n%s\r\n-----------------\r\n", hdr);
+		SerialDEBUG.printf("Write Hdr:\r\n-------------------\r\n");
+		SerialDEBUG.print((char *)hdr);
+		SerialDEBUG.printf("-------------------\r\n");
 
 		binFile.write(hdr, sizeof(hdr));
 		binFile.sync();
@@ -2101,6 +2107,7 @@ SdCard* m_card = nullptr;
 int cmd_format(char *line)
 {
 	FatFormatter fat_format;
+	File32 file;
 
 	if (line)
 	{
@@ -2125,6 +2132,21 @@ int cmd_format(char *line)
 			fat_format.format(m_card, hdr, &SerialDEBUG);
 #endif
 		}
+#ifdef ADAFRUIT_ITSYBITSY_M0
+		else
+		{
+			file_name_template.read(&file_name_template_mem);
+
+			file.open(file_name_template_mem.txt, O_WRITE);
+			file.truncate();
+			file.remove();
+
+			file.close();
+
+			SerialDEBUG.printf("remove file : %s\r\n", file_name_template_mem.txt);
+		}
+#endif
+
 	}
 	else
 	{
@@ -2448,7 +2470,7 @@ void loop()
 		if (debug >= 1)
 		{
 			print_date(&now_tm);
-			SerialDEBUG.printf(" %d sample_write %d sample_ready %d sample_read %d sample_write_sd %d to %d\r\n", run_sample, sample_write, sample_ready, sample_read, sample_write_sd, to_write);
+			SerialDEBUG.printf(" %d write %d ready %d read %d write_sd %d to %d\r\n", run_sample, sample_write, sample_ready, sample_read, sample_write_sd, to_write);
 		}
 	}
 
