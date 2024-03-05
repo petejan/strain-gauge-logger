@@ -690,7 +690,7 @@ uint8_t adc_detect_input(void)
 		ret = -1;
 	}
 
-	if (data == 8388607)
+	if (data >= 8300000) // does not quite pull high, probably capacitance
 	{
 		SerialDEBUG.printf("disconnected\r\n");
 
