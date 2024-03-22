@@ -14,7 +14,7 @@ bool tcIsSyncing()
 void tcStartCounter()
 {
 	// Enable the TC5 interrupt request
-	if (pwrUpTime->read() > 0)
+	if (pwrUpTime.read() > 0)
 	{
 		TC5->COUNT16.INTENSET.reg = TC_INTENSET_MC0 | TC_INTENSET_MC1;
 	}
@@ -71,7 +71,7 @@ void TC5_Handler (void)
 				adc_read_state = WAIT_PWR_TICK;
 
 				// for sampling < 10ms don't power off the ADC, skip directly to sampling
-				if (sampleRate->read() < 10)
+				if (sampleRate.read() < 10)
 				{
 					adc_read_state = WAIT_ADC;
 
@@ -101,7 +101,7 @@ void TC5_Handler (void)
 		TC5->COUNT16.INTFLAG.bit.MC0 = 1; //Writing a 1 to INTFLAG.bit.MC0 clears the interrupt so that it will run again
 	}
 	// Compare 1 interrupt, used for power up delay
-	if ((TC5->COUNT16.INTFLAG.bit.MC1) || (pwrUpTime->read() == 0))
+	if ((TC5->COUNT16.INTFLAG.bit.MC1) || (pwrUpTime.read() == 0))
 	{
 		if (adc_read_state == WAIT_PWR_TICK)
 		{
@@ -152,7 +152,7 @@ void tcConfigure(uint32_t sampleRate)
 	// use 2nd capture register to implement ADC power up delay
 	// TODO: for sample rates < 100ms probably don't want to power down the ADC, just sample
 
-	uint32_t pwr_time = pwrUpTime->read();
+	uint32_t pwr_time = pwrUpTime.read();
 	if (sampleRate < 30000)
 	{
 		TC5->COUNT16.CTRLA.reg |= TC_CTRLA_PRESCALER_DIV1 | TC_CTRLA_RUNSTDBY; //it will divide GCLK_TC frequency by 1

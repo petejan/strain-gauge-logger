@@ -31,6 +31,9 @@
 
 //#include "zmodem_config.h"
 
+#include "zmodem.h"
+#include "zmodem_zm.h"
+
 SdFile fout;
 
 //#define SerialDEBUG SERIAL_PORT_USBVIRTUAL
@@ -113,6 +116,16 @@ RTCZero rtc;
 
 	#define I2C_SERCOM SERCOM3
 #else
+	//------------------------------------------------------------------------------
+	// Note: Uno will not support SD_FAT_TYPE = 3.
+	// SD_FAT_TYPE = 0 for SdFat/File as defined in SdFatConfig.h,
+	// 1 for FAT16/FAT32, 2 for exFAT, 3 for FAT16/FAT32 and exFAT.
+	#define SD_FAT_TYPE 1
+
+	// Max SPI rate for AVR is 10 MHz for F_CPU 20 MHz, 8 MHz for F_CPU 16 MHz.
+	#define SPI_CLOCK SD_SCK_MHZ(4)
+
+	#define SD_CONFIG SdSpiConfig(SD_CS_PIN, SHARED_SPI, SPI_CLOCK)
 
 	#if SD_FAT_TYPE == 0
 		SdFat flash;
@@ -189,14 +202,19 @@ const uint8_t channel_config_reg1[] = {ADS122C04_DATA_RATE_20SPS | ADS122C04_OP_
 #endif
 
 #ifdef SENTRON
+//const uint8_t channel_config_reg0[] = {ADS122C04_MUX_AIN0_AVSS | ADS122C04_GAIN_1 | ADS122C04_PGA_ENABLED,
+//									   ADS122C04_MUX_AIN2_AIN3 | ADS122C04_GAIN_1 | ADS122C04_PGA_ENABLED,
+//									   0,
+//									   0xff};
+//
+//const uint8_t channel_config_reg1[] = {ADS122C04_DATA_RATE_20SPS | ADS122C04_OP_MODE_NORMAL | ADS122C04_CONVERSION_MODE_SINGLE_SHOT | ADS122C04_VREF_INTERNAL | ADS122C04_TEMP_SENSOR_OFF,
+//									   ADS122C04_DATA_RATE_20SPS | ADS122C04_OP_MODE_NORMAL | ADS122C04_CONVERSION_MODE_SINGLE_SHOT | ADS122C04_VREF_EXT_REF_PINS | ADS122C04_TEMP_SENSOR_OFF,
+//									   ADS122C04_DATA_RATE_20SPS | ADS122C04_OP_MODE_NORMAL | ADS122C04_CONVERSION_MODE_SINGLE_SHOT | ADS122C04_VREF_INTERNAL | ADS122C04_TEMP_SENSOR_ON,
+//									   0xff};
 const uint8_t channel_config_reg0[] = {ADS122C04_MUX_AIN0_AVSS | ADS122C04_GAIN_1 | ADS122C04_PGA_ENABLED,
-									   ADS122C04_MUX_AIN2_AIN3 | ADS122C04_GAIN_1 | ADS122C04_PGA_ENABLED,
-									   0,
 									   0xff};
 
 const uint8_t channel_config_reg1[] = {ADS122C04_DATA_RATE_20SPS | ADS122C04_OP_MODE_NORMAL | ADS122C04_CONVERSION_MODE_SINGLE_SHOT | ADS122C04_VREF_INTERNAL | ADS122C04_TEMP_SENSOR_OFF,
-									   ADS122C04_DATA_RATE_20SPS | ADS122C04_OP_MODE_NORMAL | ADS122C04_CONVERSION_MODE_SINGLE_SHOT | ADS122C04_VREF_EXT_REF_PINS | ADS122C04_TEMP_SENSOR_OFF,
-									   ADS122C04_DATA_RATE_20SPS | ADS122C04_OP_MODE_NORMAL | ADS122C04_CONVERSION_MODE_SINGLE_SHOT | ADS122C04_VREF_INTERNAL | ADS122C04_TEMP_SENSOR_ON,
 									   0xff};
 #endif
 /*
@@ -434,17 +452,17 @@ void setup()
     FsDateTime::setCallback(dateTime);
 
     // Setup the RTC frequency correction
-	SerialDEBUG.printf("fcorr %d\r\n", fcorr_set->read());
+	SerialDEBUG.printf("fcorr %d\r\n", fcorr_set.read());
 
-	RTC->MODE2.FREQCORR.reg = fcorr_set->read();
+	RTC->MODE2.FREQCORR.reg = fcorr_set.read();
 
 	// Setup the sample rate, default to 1 sample/second (2000 ms)
-	if (sampleRate->read() == 0)
+	if (sampleRate.read() == 0)
 	{
-		sampleRate->write(2000);
+		sampleRate.write(2000);
 
 #ifdef SENTRON
-		pwrUpTime->write(1000);
+		pwrUpTime.write(1000);
 #else
 		pwrUpTime_f.write(3);
 #endif
@@ -461,28 +479,28 @@ void setup()
 #elif BYTES_PER_SAMPLE == 4
 		reg2 |= ADS122C04_DCNT_ENABLE;
 #endif
-		adc_reg2->write(reg2);
+		adc_reg2.write(reg2);
 #ifdef SENTRON
-		adc_reg3->write(ADS122C04_IDAC1_AIN1 | ADS122C04_IDAC2_DISABLED);
+		adc_reg3.write(ADS122C04_IDAC1_AIN1 | ADS122C04_IDAC2_DISABLED);
 #else
-		adc_reg3->write(ADS122C04_IDAC1_DISABLED | ADS122C04_IDAC2_DISABLED);
+		adc_reg3.write(ADS122C04_IDAC1_DISABLED | ADS122C04_IDAC2_DISABLED);
 #endif
 	}
-	if (nburst->read() == 0)
+	if (nburst.read() == 0)
 	{
-		nburst->write(1);
+		nburst.write(1);
 	}
-	burst = nburst->read();
+	burst = nburst.read();
 
-	// tcConfigure(sampleRate->read()); //configure the timer to run at <sampleRate>Hertz
+	// tcConfigure(sampleRate.read()); //configure the timer to run at <sampleRate>Hertz
 	// tcStartCounter(); //starts the timer
 
-	debug = debug_set->read();
+	debug = debug_set.read();
 
 	// if mode is start-later, load with start time, otherwise alarm every minute
-	if (run_mode->read() == RUN_MODE_START_LATER)
+	if (run_mode.read() == RUN_MODE_START_LATER)
 	{
-		time_t start_time = datetime_start->read();
+		time_t start_time = datetime_start.read();
 		tm tm_elements;
 
 		gmtime_r(&start_time, &tm_elements);
@@ -511,21 +529,19 @@ void setup()
 	}
 
 	/* setup the logging file */
-	file_name_template->read(&file_name_template_mem);
+	file_name_template.read(&file_name_template_mem);
 
 	if (strlen((char *)file_name_template_mem.txt) == 0)
 	{
 #ifndef ADAFRUIT_ITSYBITSY_M0
-		const char file_name_def[80] = "SGL-%Y-%m-%d-T%H.BIN";
+		char_80 file_name_def = { "SGL-%Y-%m-%d-T%H.BIN" };
 #else
-		const char file_name_def[80] = "DATA.BIN";
+		char_80 file_name_def = { "DATA.BIN" };
 #endif
-		char_80 *p;
-		p = (char_80 *)file_name_def;
 
-		file_name_template->write(*p);
+		file_name_template.write(file_name_def);
 	}
-	file_name_template->read(&file_name_template_mem);
+	file_name_template.read(&file_name_template_mem);
 	SerialDEBUG.printf("file template : %s\r\n", file_name_template_mem.txt);
 
 	/* read setup commands from file */
@@ -618,16 +634,16 @@ void setup()
 	/* Sampling is started in main loop */
 
 	run_sample = false;
-	if (run_mode->read() == RUN_MODE_START_LATER)
+	if (run_mode.read() == RUN_MODE_START_LATER)
 	{
 		digitalWrite(ADC_PWR_PIN, 0); // start powered down
-		if (now >= datetime_start->read())
+		if (now >= datetime_start.read())
 		{
 			run_sample = true;
 		}
 	}
 
-	if (run_mode->read() == RUN_MODE_RUN)
+	if (run_mode.read() == RUN_MODE_RUN)
 	{
 		run_sample = true;
 	}
@@ -643,6 +659,13 @@ void setup()
 //    	NVIC_SetPriority((enum IRQn)i, 1);
 //    }
 //    NVIC_SetPriority(EIC_IRQn, 0);
+
+    uint32_t sample_rt;
+
+    sample_rt = sampleRate.read();
+
+    SerialDEBUG.printf("sample rate %d\r\n", sample_rt);
+
 }
 
 void print_date(tm *t)
@@ -762,7 +785,7 @@ void open_bin_file(char *new_name)
 			ad_ch++;
 		}
 		char_80 txt;
-		deployment_text->read(&txt);
+		deployment_text.read(&txt);
 		p += sprintf(p, "deployment text : %s\r\n", txt.txt);
 
 		volatile uint32_t val1, val2, val3, val4;
@@ -841,12 +864,12 @@ void loop()
 		if (debug >= 2)
 		{
 			print_date(&now_tm);
-			SerialDEBUG.printf(" rtc tick, mode %d\r\n", run_mode->read());
+			SerialDEBUG.printf(" rtc tick, mode %d\r\n", run_mode.read());
 		}
 
 		if (adc_read_state == ADC_STOP)
 		{
-			if ((run_mode->read() == RUN_MODE_RUN) | ((run_mode->read() == RUN_MODE_START_LATER) && (now >= datetime_start->read())))
+			if ((run_mode.read() == RUN_MODE_RUN) | ((run_mode.read() == RUN_MODE_START_LATER) && (now >= datetime_start.read())))
 			{
 				run_sample = true;
 
@@ -858,7 +881,7 @@ void loop()
 				// TODO: Read ADC122c04 regs here to check setup
 
 				tcDisable();
-				burst = nburst->read();
+				burst = nburst.read();
 
 				if ((channel_config_reg1[0] & ADS122C04_CONVERSION_MODE_CONTINUOUS) != 0)
 				{
@@ -895,7 +918,7 @@ void loop()
 					{
 						SerialDEBUG.printf("burst mode\r\n");
 
-						tcConfigure(sampleRate->read()); //configure the timer to run at <sampleRate>Hertz
+						tcConfigure(sampleRate.read()); //configure the timer to run at <sampleRate>Hertz
 						tcStartCounter(); //starts the timer
 
 						adc_read_state = WAIT_TICK;
@@ -906,7 +929,7 @@ void loop()
 				{
 					SerialDEBUG.printf("Timer tick mode\r\n");
 
-					tcConfigure(sampleRate->read()); //configure the timer to run at <sampleRate>Hertz
+					tcConfigure(sampleRate.read()); //configure the timer to run at <sampleRate>Hertz
 					tcStartCounter(); //starts the timer
 
 					adc_read_state = WAIT_TICK;
@@ -919,7 +942,7 @@ void loop()
 			}
 		}
 
-		if ((run_sample) && (run_mode->read() == RUN_MODE_STOP))
+		if ((run_sample) && (run_mode.read() == RUN_MODE_STOP))
 		{
 			run_sample = false; // stop now
 		}
@@ -971,20 +994,20 @@ void loop()
 		}
 
 		// reset alarm time if in start later mode
-		if ((run_mode->read() == RUN_MODE_START_LATER) && (now >= datetime_start->read()))
+		if ((run_mode.read() == RUN_MODE_START_LATER) && (now >= datetime_start.read()))
 		{
 			rtc.setAlarmTime(0, 0, 0);
 			rtc.enableAlarm(rtc.MATCH_SS);
 		}
 
-		if ((run_mode->read() == RUN_MODE_DETECT))
+		if ((run_mode.read() == RUN_MODE_DETECT))
 		{
 			if (adc_detect_input() > 0)
 			{
 				print_date(&now_tm);
 				SerialDEBUG.printf(" setting run mode\r\n");
 
-				run_mode->write(RUN_MODE_RUN);
+				run_mode.write(RUN_MODE_RUN);
 			}
 		}
 		rtc_alarm_flag = false;
@@ -1094,7 +1117,7 @@ void loop()
 			}
 			else
 			{
-				if (run_mode->read() == RUN_MODE_STOP)
+				if (run_mode.read() == RUN_MODE_STOP)
 				{
 					binFile.close();
 				}

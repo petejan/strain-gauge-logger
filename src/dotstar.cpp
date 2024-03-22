@@ -2,8 +2,6 @@
 #include <Arduino.h>
 #include "dotstar.h"
 
-#ifdef ADAFRUIT_ITSYBITSY_M0
-
 // There is only one pixel on the board
 #define NUMPIXELS 1
 
@@ -76,4 +74,3 @@ void dotstar_send(uint32_t led)
 		msk = msk >> 1;
 	}
 }
-#endif

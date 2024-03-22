@@ -86,8 +86,8 @@ void adc_setup(int ch)
 	i2c_master_adc_cmd_reg(ADS122C04_WRITE_CMD(ADS122C04_CONFIG_0_REG), channel_config_reg0[ch]);
 	i2c_master_adc_cmd_reg(ADS122C04_WRITE_CMD(ADS122C04_CONFIG_1_REG), channel_config_reg1[ch]);
 
-	i2c_master_adc_cmd_reg(ADS122C04_WRITE_CMD(ADS122C04_CONFIG_2_REG), adc_reg2->read());
-	i2c_master_adc_cmd_reg(ADS122C04_WRITE_CMD(ADS122C04_CONFIG_3_REG), adc_reg3->read());
+	i2c_master_adc_cmd_reg(ADS122C04_WRITE_CMD(ADS122C04_CONFIG_2_REG), adc_reg2.read());
+	i2c_master_adc_cmd_reg(ADS122C04_WRITE_CMD(ADS122C04_CONFIG_3_REG), adc_reg3.read());
 
 	// start the sample
 	i2c_master_adc_cmd(ADS122C04_START_CMD);
@@ -137,7 +137,7 @@ void adc_convert_isr(void)
 				burst--;
 				if (burst == 0)
 				{
-					burst = nburst->read();
+					burst = nburst.read();
 					adc_read_state = WAIT_TICK;
 
 					// disable this interrupt now, and go back to waiting for the next sample tick
@@ -167,7 +167,7 @@ void adc_convert_isr(void)
 				burst--;
 				if (burst == 0)
 				{
-					burst = nburst->read();
+					burst = nburst.read();
 
 					adc_read_state = WAIT_TICK;
 
@@ -175,7 +175,7 @@ void adc_convert_isr(void)
 					detachInterrupt(ADC_INT);
 
 					// de-power the ADC at sample rates more that 10ms
-					if (sampleRate->read() >= 10)
+					if (sampleRate.read() >= 10)
 					{
 						digitalWrite(ADC_PWR_PIN, 0);
 

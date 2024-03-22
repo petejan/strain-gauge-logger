@@ -2,9 +2,8 @@
 //This is a automatic generated file
 //Please do not modify this file
 //If you touch this file your change will be overwritten during the next build
-//This file has been generated on 2024-03-18 06:57:40
+//This file has been generated on 2024-03-21 20:03:41
 
-#include "Arduino.h"
 #include "Arduino.h"
 #include "ZeroRegs.h"
 #include "SdFat.h"
@@ -22,7 +21,10 @@
 #include "wiring_private.h"
 #define SENTRON
 #define SerialDEBUG SERIAL_PORT_HARDWARE
-
+#include <Adafruit_SPIFlash.h>
+#include "src/flash_config.h"
+#include "zmodem.h"
+#include "zmodem_zm.h"
 
 void dateTime(uint16_t* date, uint16_t* time, uint8_t* ms10) ;
 void rtc_int() ;
@@ -34,7 +36,7 @@ void print_date(tm *t) ;
 void open_bin_file(char *new_name) ;
 void loop() ;
 
-#include "strain_logger.ino"
+#include "adc122c04_direct.ino"
 
 
 #endif

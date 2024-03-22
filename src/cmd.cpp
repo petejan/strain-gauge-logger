@@ -186,10 +186,10 @@ int cmd_adc(char *line)
 
 	SerialDEBUG.printf(" Temp Sensor : %d\r\n", new_reg1 & ADS122C04_TEMP_SENSOR_ON);
 
-	int new_reg2 = adc_reg2->read();
+	int new_reg2 = adc_reg2.read();
 	SerialDEBUG.printf("adc_reg2 : 0x%x\r\n", new_reg2);
 
-	int new_reg3 = adc_reg3->read();
+	int new_reg3 = adc_reg3.read();
 	SerialDEBUG.printf("adc_reg3 : 0x%x\r\n", new_reg3);
 
 	// Channels
@@ -206,7 +206,7 @@ int cmd_adc(char *line)
 
 int cmd_start(char *line)
 {
-	run_mode->write(RUN_MODE_RUN);
+	run_mode.write(RUN_MODE_RUN);
 
 	SerialDEBUG.printf("set run mode\r\n");
 
@@ -215,7 +215,7 @@ int cmd_start(char *line)
 
 int cmd_startdetect(char *line)
 {
-	run_mode->write(RUN_MODE_DETECT);
+	run_mode.write(RUN_MODE_DETECT);
 
 	SerialDEBUG.printf("set wait for connect load cell mode\r\n");
 
@@ -224,7 +224,7 @@ int cmd_startdetect(char *line)
 
 int cmd_stop(char *line)
 {
-	run_mode->write(RUN_MODE_STOP);
+	run_mode.write(RUN_MODE_STOP);
 
 	SerialDEBUG.printf("set stop mode\r\n");
 
@@ -233,13 +233,13 @@ int cmd_stop(char *line)
 
 int cmd_startlater(char *line)
 {
-	time_t start_time = datetime_start->read();
+	time_t start_time = datetime_start.read();
 	tm tm_elements;
 	unsigned long delta;
 
 	gmtime_r(&start_time, &tm_elements);
 
-	run_mode->write(RUN_MODE_START_LATER);
+	run_mode.write(RUN_MODE_START_LATER);
 
 	rtc.disableAlarm();
 
@@ -286,10 +286,10 @@ int cmd_starttime(char *line)
 
 		start_time = mktime(&tm_elements);
 
-		datetime_start->write(start_time);
+		datetime_start.write(start_time);
 	}
 
-	start_time = datetime_start->read();
+	start_time = datetime_start.read();
 
 	gmtime_r(&start_time, &tm_elements);
 
@@ -438,7 +438,7 @@ int cmd_debug(char *line)
 
 		debug = new_debug;
 
-		debug_set->write(debug);
+		debug_set.write(debug);
 	}
 
 	SerialDEBUG.printf("debug %d\r\n", debug);
@@ -454,10 +454,10 @@ int cmd_burst(char *line)
 	{
 	    sscanf(line, "%d", &new_burst);
 
-		nburst->write(new_burst);
+		nburst.write(new_burst);
 	}
 
-	SerialDEBUG.printf("no. burst %d\r\n", nburst->read());
+	SerialDEBUG.printf("no. burst %d\r\n", nburst.read());
 
 	return 0;
 }
@@ -481,7 +481,7 @@ int cmd_fcorr(char *line)
 	    sscanf(line, "%d", &new_fcorr);
 		RTC->MODE2.FREQCORR.reg = (uint8_t)new_fcorr;
 
-		fcorr_set->write(new_fcorr);
+		fcorr_set.write(new_fcorr);
 	}
 
 	SerialDEBUG.printf("fcorr %d\r\n", new_fcorr);
@@ -491,7 +491,7 @@ int cmd_fcorr(char *line)
 
 int cmd_sample(char *line)
 {
-	int new_sampleRate = sampleRate->read();
+	int new_sampleRate = sampleRate.read();
 
 	if (line)
 	{
@@ -499,7 +499,7 @@ int cmd_sample(char *line)
 
 	    if (new_sampleRate >= 2)
 	    {
-			sampleRate->write(new_sampleRate);
+			sampleRate.write(new_sampleRate);
 
 			tcDisable();
 			tcConfigure(new_sampleRate);
@@ -518,13 +518,13 @@ int cmd_sample(char *line)
 
 int cmd_pwrdelay(char *line)
 {
-	int new_pwrUpTime = pwrUpTime->read();
+	int new_pwrUpTime = pwrUpTime.read();
 
 	if (line)
 	{
 	    sscanf(line, "%d", &new_pwrUpTime);
 
-    	pwrUpTime->write(new_pwrUpTime);
+    	pwrUpTime.write(new_pwrUpTime);
 	}
 
 	SerialDEBUG.printf("power up time %d\r\n", new_pwrUpTime);
@@ -538,7 +538,7 @@ int cmd_set(char *line)
 
 	SerialDEBUG.printf("\r\n" __FILE__ " " __DATE__ " " __TIME__ "\r\n");
 
-	time_t start_time = datetime_start->read();
+	time_t start_time = datetime_start.read();
 	tm tm_elements;
 
 	gmtime_r(&start_time, &tm_elements);
@@ -555,18 +555,18 @@ int cmd_set(char *line)
 	print_date(&now_tm);
 	SerialDEBUG.printf("\r\n");
 
-	SerialDEBUG.printf("mode : %d\r\n", run_mode->read());
-	SerialDEBUG.printf("fcorr : %d\r\n", fcorr_set->read());
+	SerialDEBUG.printf("mode : %d\r\n", run_mode.read());
+	SerialDEBUG.printf("fcorr : %d\r\n", fcorr_set.read());
 	SerialDEBUG.printf("can sleep : %d\r\n", can_sleep);
 	SerialDEBUG.printf("debug : %d\r\n", debug);
-	SerialDEBUG.printf("number in burst : %d\r\n", nburst->read());
+	SerialDEBUG.printf("number in burst : %d\r\n", nburst.read());
 	SerialDEBUG.printf("current file : %s\r\n", file_name);
-	SerialDEBUG.printf("sample rate : %d (ms)\r\n", sampleRate->read());
-	SerialDEBUG.printf("power up delay : %d (ms)\r\n", pwrUpTime->read());
+	SerialDEBUG.printf("sample rate : %d (ms)\r\n", sampleRate.read());
+	SerialDEBUG.printf("power up delay : %d (ms)\r\n", pwrUpTime.read());
 
-	deployment_text->read(&txt);
+	deployment_text.read(&txt);
 	SerialDEBUG.printf("deployment text : %s\r\n", txt.txt);
-	file_name_template->read(&txt);
+	file_name_template.read(&txt);
 	SerialDEBUG.printf("file name template: %s\r\n", txt.txt);
 
 	return 0;
@@ -596,10 +596,10 @@ int cmd_text(char *line)
 	}
 	if (update)
 	{
-		deployment_text->write(*p_80);
+		deployment_text.write(*p_80);
 	}
 
-	deployment_text->read(&txt);
+	deployment_text.read(&txt);
 	SerialDEBUG.printf("deployment text : %s\r\n", txt.txt);
 
 	return 0;
@@ -612,12 +612,12 @@ int cmd_file(char *line)
 		char_80 *p;
 		p = (char_80 *)line;
 
-		file_name_template->write(*p);
+		file_name_template.write(*p);
 	}
 
 	char_80 txt;
 
-	file_name_template->read(&txt);
+	file_name_template.read(&txt);
 	SerialDEBUG.printf("file name : %s\r\n", txt.txt);
 
 	return 0;
@@ -693,7 +693,7 @@ int cmd_format(char *line)
 #ifdef ADAFRUIT_ITSYBITSY_M0
 		else
 		{
-			file_name_template->read(&file_name_template_mem);
+			file_name_template.read(&file_name_template_mem);
 
 			file.open(file_name_template_mem.txt, O_WRITE);
 			file.truncate();

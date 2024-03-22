@@ -40,9 +40,6 @@ extern uint8_t *sample_write_addr;
 
 extern const uint8_t ADC_INT;
 extern const uint8_t ADC_PWR_PIN;
-extern const uint8_t SAMPLE_PIN;
-extern const uint8_t SD_CS_PIN;
-extern const uint8_t MISSED_SAMPLE_PIN;
 
 extern void get_next_sample_buf(void);
 
@@ -53,24 +50,7 @@ typedef File file_t;
 
 extern file_t binFile;
 extern SdFile fout;
-#ifdef ADAFRUIT_ITSYBITSY_M0
 extern Adafruit_SPIFlash flash;
-#endif
-extern SdFat32 flash;
-
-extern uint8_t hdr[512];
-
-//------------------------------------------------------------------------------
-// Note: Uno will not support SD_FAT_TYPE = 3.
-// SD_FAT_TYPE = 0 for SdFat/File as defined in SdFatConfig.h,
-// 1 for FAT16/FAT32, 2 for exFAT, 3 for FAT16/FAT32 and exFAT.
-#define SD_FAT_TYPE 1
-
-// Max SPI rate for AVR is 10 MHz for F_CPU 20 MHz, 8 MHz for F_CPU 16 MHz.
-#define SPI_CLOCK SD_SCK_MHZ(4)
-
-#define SD_CONFIG SdSpiConfig(SD_CS_PIN, SHARED_SPI, SPI_CLOCK)
-
 
 extern RTCZero rtc;
 
@@ -91,13 +71,12 @@ extern char_80 file_name_template_mem;
 #include <FlashStorage.h>
 
 #define FlashStoragePtr(name, T) \
-  __attribute__((__aligned__(256))) extern const uint8_t PPCAT(_data, name)[(sizeof(T)+255)/256*256]; \
-  extern FlashStorageClass<T> * const name;
+  extern FlashStorageClass<T> name;
 
 #define FlashStorageDef(name, T) \
-  __attribute__((__aligned__(256))) const uint8_t PPCAT(_data, name)[(sizeof(T)+255)/256*256] = {}; \
-  __attribute__((section(".rodata#"))) FlashStorageClass<T> PPCAT(_inst, name)(PPCAT(_data, name)); \
-  FlashStorageClass<T> * const name = &PPCAT(_inst, name);
+  __attribute__((__aligned__(256))) \
+  static const uint8_t PPCAT(_data,name)[(sizeof(T)+255)/256*256] = { }; \
+  __attribute__((section(".rodata#"))) FlashStorageClass<T> name(PPCAT(_data,name));
 
 FlashStoragePtr(adc_reg2, uint8_t);
 FlashStoragePtr(adc_reg3, uint8_t);
