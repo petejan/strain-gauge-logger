@@ -9,7 +9,7 @@
 #include "ZeroRegs.h"
 #include "main.h"
 #include "time.h"
-#include "zmodem.h"
+#include "../zmodem/zmodem.h"
 #include "adc122c04.h"
 #include "timer.h"
 
