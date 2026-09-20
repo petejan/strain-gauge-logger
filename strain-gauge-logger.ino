@@ -19,8 +19,6 @@
 
 #include "wiring_private.h"
 
-#define SENTRON
-
 #define SerialDEBUG SERIAL_PORT_HARDWARE
 
 #ifdef ARDUINO_ITSYBITSY_M0
@@ -29,11 +27,6 @@
 #include "src/flash_config.h"
 #endif
 
-//#include "zmodem_config.h"
-
-#include "zmodem/zmodem.h"
-#include "zmodem/zmodem_zm.h"
-
 SdFile fout;
 
 //#define SerialDEBUG SERIAL_PORT_USBVIRTUAL
@@ -41,18 +34,18 @@ SdFile fout;
 
 /* flash storage for setup params */
 
-FlashStorageDef(adc_reg2, uint8_t);
-FlashStorageDef(adc_reg3, uint8_t);
+FlashStorage(adc_reg2, uint8_t);
+FlashStorage(adc_reg3, uint8_t);
 
-FlashStorageDef(fcorr_set, uint8_t);
-FlashStorageDef(debug_set, int8_t);
-FlashStorageDef(run_mode, RUN_MODE);
-FlashStorageDef(datetime_start, uint32_t);
-FlashStorageDef(sampleRate, uint32_t);
-FlashStorageDef(pwrUpTime, uint32_t);
-FlashStorageDef(deployment_text, char_80);
-FlashStorageDef(file_name_template, char_80);
-FlashStorageDef(nburst, uint16_t);
+FlashStorage(fcorr_set, uint8_t);
+FlashStorage(debug_set, int8_t);
+FlashStorage(run_mode, RUN_MODE);
+FlashStorage(datetime_start, uint32_t);
+FlashStorage(sampleRate, uint32_t);
+FlashStorage(pwrUpTime, uint32_t);
+FlashStorage(deployment_text, char_80);
+FlashStorage(file_name_template, char_80);
+FlashStorage(nburst, uint16_t);
 
 /* Create an rtc object */
 RTCZero rtc;
@@ -60,18 +53,17 @@ RTCZero rtc;
 #ifdef ADAFRUIT_FEATHER_M0
 	const uint8_t ADC_INT = 5;
 	const uint8_t PIN_WRITE_LED = 8;
-	const uint8_t SAMPLE_PIN = 13;
 	const uint8_t SLEEP_PIN = 11;
 	const uint8_t ADC_PWR_PIN = 10;
 
-	#define SD_CAR_DET_PIN  7
-
-	const uint8_t MISSED_SAMPLE_PIN = A2;
+	// const uint8_t SD_CAR_DET_PIN = 7;
 
 	const uint8_t LED_RED_PIN = 13;
 	const uint8_t LED_GREEN_PIN = 8;
 
-	// SD chip select pin.
+	const uint8_t MISSED_SAMPLE_PIN = A2;
+	const uint8_t SAMPLE_PIN = 13;
+
 	const uint8_t SD_CS_PIN = 4;
 
 	#define I2C_SERCOM SERCOM3
@@ -122,10 +114,6 @@ RTCZero rtc;
 	// 1 for FAT16/FAT32, 2 for exFAT, 3 for FAT16/FAT32 and exFAT.
 	#define SD_FAT_TYPE 1
 
-	// Max SPI rate for AVR is 10 MHz for F_CPU 20 MHz, 8 MHz for F_CPU 16 MHz.
-	#define SPI_CLOCK SD_SCK_MHZ(4)
-
-	#define SD_CONFIG SdSpiConfig(SD_CS_PIN, SHARED_SPI, SPI_CLOCK)
 
 	#if SD_FAT_TYPE == 0
 		SdFat flash;
@@ -191,46 +179,32 @@ const uint8_t channel_config_reg0[] = {ADS122C04_MUX_AIN0_AIN1 | ADS122C04_GAIN_
 									   ADS122C04_MUX_AIN2_AVSS | ADS122C04_GAIN_1 | ADS122C04_PGA_ENABLED,
 										0xff};
 */
+#define TEMP_LOGGER
 
-#ifndef SENTRON
+#ifdef STRAIN_LOGGER
 /* strain gauge logger */
 const uint8_t channel_config_reg0[] = {ADS122C04_MUX_AIN0_AIN1 | ADS122C04_GAIN_128 | ADS122C04_PGA_ENABLED,
-										0xff};
+									   ADS122C04_MUX_AIN0_AIN1 | 1 | ADS122C04_PGA_ENABLED,
+									   0xff};
 
 const uint8_t channel_config_reg1[] = {ADS122C04_DATA_RATE_20SPS | ADS122C04_OP_MODE_NORMAL | ADS122C04_CONVERSION_MODE_SINGLE_SHOT | ADS122C04_VREF_EXT_REF_PINS | ADS122C04_TEMP_SENSOR_OFF,
+								       ADS122C04_DATA_RATE_20SPS | ADS122C04_OP_MODE_NORMAL | ADS122C04_CONVERSION_MODE_SINGLE_SHOT | ADS122C04_VREF_EXT_REF_PINS | ADS122C04_TEMP_SENSOR_ON,
 									   0xff};
 #endif
-
-#ifdef SENTRON
-//const uint8_t channel_config_reg0[] = {ADS122C04_MUX_AIN0_AVSS | ADS122C04_GAIN_1 | ADS122C04_PGA_ENABLED,
-//									   ADS122C04_MUX_AIN2_AIN3 | ADS122C04_GAIN_1 | ADS122C04_PGA_ENABLED,
-//									   0,
-//									   0xff};
-//
-//const uint8_t channel_config_reg1[] = {ADS122C04_DATA_RATE_20SPS | ADS122C04_OP_MODE_NORMAL | ADS122C04_CONVERSION_MODE_SINGLE_SHOT | ADS122C04_VREF_INTERNAL | ADS122C04_TEMP_SENSOR_OFF,
-//									   ADS122C04_DATA_RATE_20SPS | ADS122C04_OP_MODE_NORMAL | ADS122C04_CONVERSION_MODE_SINGLE_SHOT | ADS122C04_VREF_EXT_REF_PINS | ADS122C04_TEMP_SENSOR_OFF,
-//									   ADS122C04_DATA_RATE_20SPS | ADS122C04_OP_MODE_NORMAL | ADS122C04_CONVERSION_MODE_SINGLE_SHOT | ADS122C04_VREF_INTERNAL | ADS122C04_TEMP_SENSOR_ON,
-//									   0xff};
-const uint8_t channel_config_reg0[] = {ADS122C04_MUX_AIN0_AVSS | ADS122C04_GAIN_1 | ADS122C04_PGA_ENABLED,
+#ifdef TEMP_LOGGER
+const uint8_t channel_config_reg0[] = {ADS122C04_MUX_AIN3_AVSS | ADS122C04_GAIN_1 | ADS122C04_PGA_DISABLED,
+									   ADS122C04_MUX_AIN3_AVSS | ADS122C04_GAIN_1 | ADS122C04_PGA_DISABLED,
 									   0xff};
 
-const uint8_t channel_config_reg1[] = {ADS122C04_DATA_RATE_20SPS | ADS122C04_OP_MODE_NORMAL | ADS122C04_CONVERSION_MODE_SINGLE_SHOT | ADS122C04_VREF_INTERNAL | ADS122C04_TEMP_SENSOR_OFF,
+const uint8_t channel_config_reg1[] = {ADS122C04_DATA_RATE_20SPS | ADS122C04_OP_MODE_NORMAL | ADS122C04_CONVERSION_MODE_SINGLE_SHOT | ADS122C04_VREF_EXT_REF_PINS | ADS122C04_TEMP_SENSOR_OFF,
+								       ADS122C04_DATA_RATE_20SPS | ADS122C04_OP_MODE_NORMAL | ADS122C04_CONVERSION_MODE_SINGLE_SHOT | ADS122C04_VREF_EXT_REF_PINS | ADS122C04_TEMP_SENSOR_ON,
 									   0xff};
 #endif
-/*
-const uint8_t channel_config_reg0[] = {ADS122C04_MUX_AIN0_AIN1 | ADS122C04_GAIN_1 | ADS122C04_PGA_ENABLED,
-										0xff};
-*/
-
 volatile bool waiting_for_sample = false;
 volatile int16_t sample_write = -BYTES_PER_SAMPLE;
 volatile int16_t sample_ready = -BYTES_PER_SAMPLE;
 
-#ifdef SENTRON
 uint8_t data_buffer[512 * BYTES_PER_SAMPLE * 2];
-#else
-uint8_t data_buffer[512 * 6 * 2];
-#endif
 
 time_t now;
 struct tm now_tm;
@@ -461,17 +435,10 @@ void setup()
 	{
 		sampleRate.write(2000);
 
-#ifdef SENTRON
-		pwrUpTime.write(1000);
-#else
-		pwrUpTime_f.write(3);
-#endif
+		pwrUpTime.write(3);
 
-#ifdef SENTRON
-		uint8_t reg2 = ADS122C04_BURN_OUT_CURRENT_OFF | ADS122C04_IDAC_CURRENT_1000_UA;
-#else
 		uint8_t reg2 = ADS122C04_BURN_OUT_CURRENT_OFF | ADS122C04_IDAC_CURRENT_OFF;
-#endif
+
 #if BYTES_PER_SAMPLE == 6
 		reg2 |= ADS122C04_CRC_CRC16_ENABLED | ADS122C04_DCNT_ENABLE;
 #elif BYTES_PER_SAMPLE == 5
@@ -480,11 +447,7 @@ void setup()
 		reg2 |= ADS122C04_DCNT_ENABLE;
 #endif
 		adc_reg2.write(reg2);
-#ifdef SENTRON
-		adc_reg3.write(ADS122C04_IDAC1_AIN1 | ADS122C04_IDAC2_DISABLED);
-#else
 		adc_reg3.write(ADS122C04_IDAC1_DISABLED | ADS122C04_IDAC2_DISABLED);
-#endif
 	}
 	if (nburst.read() == 0)
 	{
@@ -548,6 +511,7 @@ void setup()
 
 #ifndef ADAFRUIT_ITSYBITSY_M0
 	int det = digitalRead(SD_CAR_DET_PIN);
+	det = 1;
 
 	if (det)
 	{
@@ -709,7 +673,10 @@ void open_bin_file(char *new_name)
 		can_sleep_count = 5;
 	}
 
-	SerialDEBUG.printf("file pos : %d\r\n", binFile.position());
+	if (debug > 0)
+	{
+		SerialDEBUG.printf("file pos : %d\r\n", binFile.position());
+	}
 
 	// write header to start of new file
 	if (binFile.isOpen() && (binFile.position() == 0))
@@ -772,10 +739,9 @@ void open_bin_file(char *new_name)
 
 		memset(hdr, 0, sizeof(hdr));
 		p += sprintf(p, "adc122c04 " __DATE__ " " __TIME__ "\r\n");
-		p += sprintf(p, "sample rate = %d (ms)\r\n", sampleRate);
-		p += sprintf(p, "power up time = %d (ms)\r\n", pwrUpTime);
-		p += sprintf(p, "bytes per block = %d\r\n", sizeof(data_buffer));
-		p += sprintf(p, "no. burst = %d\r\n", nburst);
+		p += sprintf(p, "sample rate = %d (ms)\r\n", sampleRate.read());
+		p += sprintf(p, "power up time = %d (ms)\r\n", pwrUpTime.read());
+		p += sprintf(p, "no. burst = %d\r\n", nburst.read());
 		p += sprintf(p, "bytes per sample = %d\r\n", BYTES_PER_SAMPLE);
 		p += sprintf(p, "buffer size = %d\r\n", sizeof(data_buffer));
 		while (channel_config_reg0[ad_ch] != 0xff)
@@ -988,7 +954,10 @@ void loop()
 		// Sync file, TODO: do this less often or maybe not at all...
 		if (binFile.isOpen())
 		{
-			SerialDEBUG.printf("file sync %d\r\n", binFile.position());
+			if (debug > 0)
+			{
+				SerialDEBUG.printf("file sync %d\r\n", binFile.position());
+			}
 
 			binFile.flush();
 		}
@@ -1090,9 +1059,11 @@ void loop()
 		now = rtc.getEpoch();
 		gmtime_r(&now, &now_tm);
 
-		print_date(&now_tm);
-
-		SerialDEBUG.printf(" sample write sd %d\r\n", sample_write_sd);
+		if (debug > 0)
+		{
+			print_date(&now_tm);
+			SerialDEBUG.printf(" sample write sd %d\r\n", sample_write_sd);
+		}
 
 		if (debug > 0)
 		{
@@ -1184,7 +1155,18 @@ void loop()
 
 				print_date(&now_tm);
 
-				SerialDEBUG.printf(" ch data %-8d %-8d %-8d\r\n", channel_data[0], channel_data[1], channel_data[2]);
+				SerialDEBUG.print(" channel data ");
+				uint8_t i = 0;
+				while (channel_config_reg0[i] != 0xff)
+				{
+					SerialDEBUG.printf("%d", channel_data[i]);
+					i++;
+					if (channel_config_reg0[i] != 0xff)
+					{
+						SerialDEBUG.print(" ");
+					}
+				}
+				SerialDEBUG.println();
 			}
 		}
 
@@ -1198,14 +1180,15 @@ void loop()
 			if (debug >= 2)
 			{
 				int32_t data;
+				uint8_t *p;
 
-				data = data_buffer[sample_read+1];
-				if (data > 128) // sign extend
-				{
-					data = data | 0xffffff00;
-				}
-				data |= (data << 8) + data_buffer[sample_read+2];
-				data |= (data << 8) + data_buffer[sample_read+3];
+				p = (uint8_t *)&data;
+				*p++ = data_buffer[3];
+				*p++ = data_buffer[2];
+				*p++ = data_buffer[1];
+				*p++ = 0;
+				data = (data << 8) >> 8;
+
 				SerialDEBUG.printf("sample @ %4d = count %3d data %8ld CRC %3d %3d\r\n", sample_read, data_buffer[sample_read], data, data_buffer[sample_read+4], data_buffer[sample_read+5]);
 			}
 

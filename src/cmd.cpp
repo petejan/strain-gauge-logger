@@ -9,7 +9,6 @@
 #include "ZeroRegs.h"
 #include "main.h"
 #include "time.h"
-#include "../zmodem/zmodem.h"
 #include "adc122c04.h"
 #include "timer.h"
 
@@ -36,8 +35,11 @@ int cmd_file(char *line);
 int cmd_format(char *line);
 int cmd_sync(char *line);
 int cmd_burst(char *line);
+int cmd_hdr(char *line);
+#ifdef ZMODEM
 int cmd_sz(char *line);
 int cmd_rz(char *line);
+#endif
 
 /* commands */
 
@@ -78,11 +80,14 @@ CMD cmds[] =
 
 		  {"---",        NULL,         "file commands"},
 		  {"ls",         cmd_ls,          "display card file list"},
-		  {"file",       cmd_file,        "display/set file name %Y-%M-%DT%H%M.BIN"},
+		  {"file",       cmd_file,        "display/set file name %Y-%m-%dT%H%M.BIN"},
 		  {"format",     cmd_format,      "format card 'format yes' to format"},
 		  {"sync",       cmd_sync,  	  "sync file"},
+		  {"hdr",        cmd_hdr,  		  "print file header"},
+#ifdef ZMODEM
 		  {"sz",         cmd_sz,  	      "send file"},
 		  {"rz",         cmd_rz,  	      "receive file"},
+#endif
 
 		  {"---",        NULL,         "help"},
 		  {"help",       cmd_help,        "command help, this message"}
@@ -157,49 +162,74 @@ int cmd_regs(char *line)
 
 int cmd_adc(char *line)
 {
-	uint8_t new_reg1 = channel_config_reg1[0];
 
-	SerialDEBUG.printf(" Mode : %s\r\n", new_reg1 & ADS122C04_OP_MODE_TURBO ? "Turbo" : "Normal");
-	SerialDEBUG.printf(" CM : %s\r\n", new_reg1 & ADS122C04_CONVERSION_MODE_CONTINUOUS ? "Continuous" : "Single");
-	SerialDEBUG.printf(" VREF : ");
-	switch ((new_reg1 & 0x6) >> 1)
+	if (line)
 	{
-		case 0:
-			SerialDEBUG.printf("Internal\r\n");
-			break;
-		case 1:
-			SerialDEBUG.printf("External\r\n");
-			break;
-		case 2:
-			SerialDEBUG.printf("AVdd/AVss\r\n");
-			break;
-	}
-	// TODO: update for turbo mode rates (x2)
-	const int data_rate[] = {20, 45, 90, 175, 330, 600, 1000};
+		int new_ch, new_reg0, new_reg1;
 
-	int dr = data_rate[(new_reg1 >> 5)];
-	if (new_reg1 & ADS122C04_OP_MODE_TURBO)
+		sscanf(line, "%d", &new_ch);
+		line = strtok(NULL, " ");
+
+		if (line)
+		{
+		    sscanf(line, "%x", &new_reg0);
+			if (line)
+			{
+			    sscanf(line, "%x", &new_reg1);
+
+				SerialDEBUG.printf("new channel %d reg0 0x%02x reg1 0x%02x\r\n", new_ch, new_reg0, new_reg1);
+				SerialDEBUG.printf("*** not implemented yet ***\r\n");
+			}
+		}
+	}
+
+	// for each channel
+	int ad_ch = 0;
+	while (channel_config_reg0[ad_ch] != 0xff)
 	{
-		dr = dr * 2;
+		SerialDEBUG.printf("channel %d reg0 0x%02x reg1 0x%02x\r\n", ad_ch, channel_config_reg0[ad_ch], channel_config_reg1[ad_ch]);
+		uint8_t reg0_val = channel_config_reg0[ad_ch];
+		SerialDEBUG.printf(" MUX : %d\r\n", (reg0_val & 0xf0) >> 4);
+		SerialDEBUG.printf(" Gain : %d\r\n", (reg0_val & 0x0d) >> 1);
+		SerialDEBUG.printf(" PGA_BYPASS : %d\r\n", (reg0_val & 0x01));
+
+		uint8_t reg1_val = channel_config_reg1[ad_ch];
+
+		SerialDEBUG.printf(" Mode : %s\r\n", reg1_val & ADS122C04_OP_MODE_TURBO ? "Turbo" : "Normal");
+		SerialDEBUG.printf(" CM : %s\r\n", reg1_val & ADS122C04_CONVERSION_MODE_CONTINUOUS ? "Continuous" : "Single");
+		SerialDEBUG.printf(" VREF : ");
+		switch ((reg1_val & 0x6) >> 1)
+		{
+			case 0:
+				SerialDEBUG.printf("Internal\r\n");
+				break;
+			case 1:
+				SerialDEBUG.printf("External\r\n");
+				break;
+			case 2:
+				SerialDEBUG.printf("AVdd/AVss\r\n");
+				break;
+		}
+		// TODO: update for turbo mode rates (x2)
+		const int data_rate[] = {20, 45, 90, 175, 330, 600, 1000};
+
+		int dr = data_rate[(reg1_val >> 5)];
+		if (reg1_val & ADS122C04_OP_MODE_TURBO)
+		{
+			dr = dr * 2;
+		}
+		SerialDEBUG.printf(" data rate : %d SPS\r\n", dr);
+
+		SerialDEBUG.printf(" Temp Sensor : %d\r\n", reg1_val & ADS122C04_TEMP_SENSOR_ON);
+
+		ad_ch++;
 	}
-	SerialDEBUG.printf(" data rate : %d SPS\r\n", dr);
-
-	SerialDEBUG.printf(" Temp Sensor : %d\r\n", new_reg1 & ADS122C04_TEMP_SENSOR_ON);
-
 	int new_reg2 = adc_reg2.read();
 	SerialDEBUG.printf("adc_reg2 : 0x%x\r\n", new_reg2);
 
 	int new_reg3 = adc_reg3.read();
 	SerialDEBUG.printf("adc_reg3 : 0x%x\r\n", new_reg3);
 
-	// Channels
-	int ad_ch = 0;
-	while (channel_config_reg0[ad_ch] != 0xff)
-	{
-		SerialDEBUG.printf("channel %d reg0 0x%02x reg1 0x%02x\r\n", ad_ch, channel_config_reg0[ad_ch], channel_config_reg1[ad_ch]);
-
-		ad_ch++;
-	}
 
 	return 0;
 }
@@ -574,20 +604,23 @@ int cmd_set(char *line)
 
 int cmd_text(char *line)
 {
-	char_80 txt;
-	char *p = (char *)&txt;
-	char_80 *p_80 = (char_80 *)&txt;
+	char txt[80];
+	char *p = (char *)&txt[0];
 	bool update = false;
+	char_80 *pTxt;
 
+	int i = 0;
 	while (line != NULL)
 	{
-		SerialDEBUG.printf("%s\r\n", line);
+		SerialDEBUG.printf("%-2d arg : %d : %s \r\n", i, strlen(line), line);
 		update = true;
+		delay(100);
 
 		strcpy(p, line);
 		p += strlen(line);
 
 		line = strtok(NULL, " ");
+		i++;
 		if (line)
 		{
 			strcpy(p, " ");
@@ -596,11 +629,14 @@ int cmd_text(char *line)
 	}
 	if (update)
 	{
-		deployment_text.write(*p_80);
+		pTxt = (char_80 *)&txt[0];
+		SerialDEBUG.printf("deployment text set : %s\r\n", txt);
+
+		deployment_text.write(*pTxt);
 	}
 
-	deployment_text.read(&txt);
-	SerialDEBUG.printf("deployment text : %s\r\n", txt.txt);
+	deployment_text.read(pTxt);
+	SerialDEBUG.printf("deployment text : %s\r\n", pTxt->txt);
 
 	return 0;
 }
@@ -622,7 +658,16 @@ int cmd_file(char *line)
 
 	return 0;
 }
+int cmd_hdr(char *line)
+{
+	SerialDEBUG.print("file header:\r\n----\r\n");
+	SerialDEBUG.write((char *)hdr);
+	SerialDEBUG.println("----");
 
+	return 0;
+}
+
+#ifdef ZMODEM
 int cmd_sz(char *line)
 {
 	if (line)
@@ -659,6 +704,7 @@ int cmd_rz(char *line)
 
 	return 0;
 }
+#endif
 
 SdCard* m_card = nullptr;
 

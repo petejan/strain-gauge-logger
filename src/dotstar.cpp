@@ -5,6 +5,7 @@
 // There is only one pixel on the board
 #define NUMPIXELS 1
 
+#ifdef ARDUINO_ITSYBITSY_M0
 void dotstar_send(uint32_t led)
 {
 	uint32_t d, msk;
@@ -74,3 +75,4 @@ void dotstar_send(uint32_t led)
 		msk = msk >> 1;
 	}
 }
+#endif

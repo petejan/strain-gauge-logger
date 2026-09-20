@@ -111,17 +111,20 @@ void adc_convert_isr(void)
 		// read data from ADC, 6 bytes <count><data2><data1><data0><CRC><CRC>
 		if (sample_write_addr)
 		{
+			uint8_t *p, *pSample;
 			i2c_master_adc_rdata(BYTES_PER_SAMPLE, sample_write_addr);
 
 			sample_ready = sample_write; // last sample is now ready to read
 
-			channel_data[current_sample_channel] = sample_write_addr[1];
-			if (channel_data[current_sample_channel] > 128) // sign extend
-			{
-				channel_data[current_sample_channel] = channel_data[current_sample_channel] | 0xffffff00;
-			}
-			channel_data[current_sample_channel] |= (channel_data[current_sample_channel] << 8) + sample_write_addr[2];
-			channel_data[current_sample_channel] |= (channel_data[current_sample_channel] << 8) + sample_write_addr[3];
+			// copy from sample_write_addr to channel_data
+			p = (uint8_t *)&channel_data[current_sample_channel];
+			pSample = sample_write_addr + 3;
+			*p++ = *pSample--;
+			*p++ = *pSample--;
+			*p++ = *pSample--;
+			*p++ = 0;
+			// sign extend the channel_data
+			channel_data[current_sample_channel] = (channel_data[current_sample_channel] << 8) >> 8;
 		}
 
 		// check for continuous mode
