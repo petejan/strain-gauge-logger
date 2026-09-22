@@ -88,8 +88,8 @@ void TC5_Handler (void)
 				if (adc_read_state == WAIT_PWR_TICK)
 				{
 					// Return the SDA pin back to I2C
-					PORT->Group[g_APinDescription[SCL].ulPort].PINCFG[g_APinDescription[SCL].ulPin].bit.PMUXEN = 1;
-					PORT->Group[g_APinDescription[SDA].ulPort].PINCFG[g_APinDescription[SDA].ulPin].bit.PMUXEN = 1;
+					//PORT->Group[g_APinDescription[SCL].ulPort].PINCFG[g_APinDescription[SCL].ulPin].bit.PMUXEN = 1;
+					//PORT->Group[g_APinDescription[SDA].ulPort].PINCFG[g_APinDescription[SDA].ulPin].bit.PMUXEN = 1;
 
 					digitalWrite(ADC_PWR_PIN, 1);
 #ifdef ADAFRUIT_FEATHER_M0

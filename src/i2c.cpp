@@ -143,7 +143,7 @@ void i2c_master_adc_rdata(uint8_t len, uint8_t buf[])
 		i++;
 		len--;
 
-		if (len == 0)
+		if (len == 1) // next byte is NACKd
 		{
 			/* Acknowledge section is set as NACK signal by writing 1 in ACKACT bit */
 			I2C_SERCOM->I2CM.CTRLB.reg |= SERCOM_I2CM_CTRLB_ACKACT;
