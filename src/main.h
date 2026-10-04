@@ -50,14 +50,13 @@ extern volatile STATE adc_read_state;
 extern const uint8_t channel_config_reg0[];
 extern const uint8_t channel_config_reg1[];
 
-extern volatile int16_t sample_write;
-extern volatile int16_t sample_ready;
+extern uint8_t data_buffer[512 * BYTES_PER_SAMPLE * 2];
+extern uint8_t *sample_write_ptr;
 
 extern bool missed_sample;
 extern STATE missed_state;
 extern volatile bool waiting_for_sample;
 extern uint8_t current_sample_channel;
-extern uint8_t *sample_write_addr;
 
 extern const uint8_t ADC_INT;
 extern const uint8_t ADC_PWR_PIN;
@@ -82,6 +81,7 @@ extern int8_t debug;
 typedef struct {char txt[80];} char_80;
 
 extern uint8_t hdr[512];
+extern uint32_t rtc_regs;
 
 extern void print_date(tm *t);
 

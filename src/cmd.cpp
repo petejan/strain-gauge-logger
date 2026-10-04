@@ -598,6 +598,7 @@ int cmd_set(char *line)
 	SerialDEBUG.printf("deployment text : %s\r\n", txt.txt);
 	file_name_template.read(&txt);
 	SerialDEBUG.printf("file name template: %s\r\n", txt.txt);
+	SerialDEBUG.printf("file name template memory: %s\r\n", file_name_template_mem.txt);
 
 	return 0;
 }
@@ -655,6 +656,7 @@ int cmd_file(char *line)
 
 	file_name_template.read(&txt);
 	SerialDEBUG.printf("file name : %s\r\n", txt.txt);
+	file_name_template.read(&file_name_template_mem);
 
 	return 0;
 }

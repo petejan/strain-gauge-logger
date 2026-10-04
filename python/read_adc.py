@@ -25,9 +25,9 @@ with open(file, "rb") as f:
     bytes_per_sample = int(bytes_match.group(1))
     print('bytes per sample', bytes_match.groups(), ' bytes', bytes_per_sample)
 
-    block_match = re.search("bytes per block = (\\d*)", hdr)
+    block_match = re.search("buffer size = (\\d*)", hdr)
     bytes_per_block = int(block_match.group(1))
-    print('bytes per block', block_match.groups(), ' bytes', bytes_per_block)
+    print('buffer size', block_match.groups(), ' bytes', bytes_per_block)
 
     sample_rate_match = re.search("sample rate = (\\d*) \\(ms\\)", hdr)
     sample_rate = int(sample_rate_match.group(1))
@@ -64,6 +64,7 @@ with open(file, "rb") as f:
     block_sample = 0
 
     while sample_data != b"":
+        print('sample_data', sample_data.hex(":"))
 
         # Do stuff with sample_data
         if block_sample == 0:
@@ -76,12 +77,12 @@ with open(file, "rb") as f:
             year = ((sample_data[3] & 0xfc) >> 2) + 2000
             print('len', len(sample_data), 'timstamp', sample_data[0], sample_data[1], sample_data[2], "ymd", year, month, day, "hms", hour, minute, sec)
             hdr_time = datetime(year, month, day, hour, minute, sec)
+            print('channel', sample_data[4], 'burst', sample_data[5])
             
             print('hdr time', hdr_time)
             dt = hdr_time
             burst_time = hdr_time
             burst_n = 0
-
 
             ch = 0
             burst = 0
@@ -96,7 +97,7 @@ with open(file, "rb") as f:
 
             check_data = sample_data[0:4]
             ck_calc = int(crc.crc_poly(check_data, 16, 0x1021, crc=0xFFFF)) # CRC = CCITT initial value of 0xffff, x16 + x12 + x5 + 1
-            if c == ck_calc:
+            if (c & 0xff00) == (ck_calc & 0xff00):
                 print(burst_time, sample, "count", cnt, "data", data, "crc", c, ck_calc, ch, burst)
                 if ch == 0:
                     var_ph_raw[sample] = data

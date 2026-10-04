@@ -201,10 +201,9 @@ const uint8_t channel_config_reg1[] = {ADS122C04_DATA_RATE_20SPS | ADS122C04_OP_
 									   0xff};
 #endif
 volatile bool waiting_for_sample = false;
-volatile int16_t sample_write = -BYTES_PER_SAMPLE;
-volatile int16_t sample_ready = -BYTES_PER_SAMPLE;
+uint8_t *sample_write_ptr = 0;
 
-uint8_t data_buffer[512 * BYTES_PER_SAMPLE * 2];
+uint8_t data_buffer[512 * BYTES_PER_SAMPLE * 2] __attribute__((aligned(256)));
 
 time_t now;
 struct tm now_tm;
@@ -214,67 +213,10 @@ STATE missed_state;
 
 bool run_sample = false;
 
-uint8_t *sample_write_addr;
-
 uint32_t rtc_regs;
 
-void get_next_sample_buf(void)
-{
-	if (sample_write >= 0)
-	{
-		sample_write_addr = &data_buffer[sample_write];
-		memset(sample_write_addr, 0, BYTES_PER_SAMPLE); // clear buffer for next sample
-	}
-
-	if (sample_write <= 0) // first sample data is RTC, LEN
-	{
-		if (run_sample)
-		{
-			sample_write = 0;
-			sample_write_addr = &data_buffer[sample_write];
-
-//			// first sample in block is RTC time
-
-			// RTC read blocks for 5 ms for sync due to different clock domains
-//		    RTC->MODE2.READREQ.reg = RTC_READREQ_RREQ;
-//		    while (RTC->MODE2.STATUS.bit.SYNCBUSY);
-//			rtc_regs = RTC->MODE2.CLOCK.reg; // REG is year/month/day/hour/min/sec
-
-			memcpy(sample_write_addr, &rtc_regs, sizeof(rtc_regs)); // copy to first 4 bytes
-			memcpy(sample_write_addr+4, &current_sample_channel, sizeof(current_sample_channel)); // copy current channel
-			memcpy(sample_write_addr+5, &burst, sizeof(burst)); // copy burst
-
-			sample_write = BYTES_PER_SAMPLE;
-			sample_write_addr = &data_buffer[sample_write];
-			memset(sample_write_addr, 1, BYTES_PER_SAMPLE); // clear buffer for next sample
-
-			//current_sample_channel = 0; // always start a new block at channel 0
-			//burst = 0;
-		}
-		else
-		{
-			adc_read_state = ADC_STOP;
-
-			sample_write_addr = NULL;
-
-			sample_write = 0;
-		}
-	}
-	if (adc_read_state != ADC_STOP)
-	{
-		sample_write += BYTES_PER_SAMPLE;
-		if (sample_write >= sizeof(data_buffer))
-		{
-			sample_write = 0;
-		}
-	}
-
-}
-uint8_t tx_buf[8];
-#define BUF_SIZE sizeof(tx_buf)
-
-volatile int16_t sample_read = -BYTES_PER_SAMPLE;
-volatile int16_t sample_write_sd = 0; // last write position
+uint8_t *sample_read_ptr = 0;
+uint8_t *sample_write_sd_ptr = 0; // last write position
 
 uint8_t hdr[512];
 
@@ -303,6 +245,11 @@ char file_name[80];
 char_80 file_name_template_mem;
 
 file_t binFile;
+
+uint8_t *last_sample_read_ptr;
+uint8_t *last_sample_write_ptr;
+uint8_t *last_sample_write_sd_ptr;
+
 
 //The setup function is called once at startup of the sketch
 void setup()
@@ -400,6 +347,11 @@ void setup()
 	pinMode(SD_CS_PIN, OUTPUT);
 
 #ifdef ADAFRUIT_FEATHER_M0
+	pinMode(28, INPUT_PULLUP); // pull up D+
+	digitalWrite(28, 1);
+	pinMode(29, INPUT_PULLUP); // Pull up D-
+	digitalWrite(29, 1);
+
 	pinMode(PIN_WRITE_LED, OUTPUT);
 	pinMode(SAMPLE_PIN, OUTPUT);
 	pinMode(SLEEP_PIN, OUTPUT);
@@ -630,6 +582,14 @@ void setup()
 
     SerialDEBUG.printf("sample rate %d\r\n", sample_rt);
 
+    sample_write_ptr = &data_buffer[0];
+    sample_read_ptr = &data_buffer[0];
+    sample_write_sd_ptr = &data_buffer[0];
+
+    last_sample_read_ptr = 0;
+    last_sample_write_ptr = 0;
+    last_sample_write_sd_ptr = 0;
+
 }
 
 void print_date(tm *t)
@@ -650,7 +610,7 @@ void open_bin_file(char *new_name)
 		binFile.sync();
 		if (strcmp(new_name, name_tmp) != 0)
 		{
-			SerialDEBUG.printf("file was open, create new file\t\n");
+			SerialDEBUG.printf("file was open, create new file\r\n");
 
 			binFile.close();
 
@@ -868,10 +828,19 @@ void loop()
 					waiting_for_sample = true;
 					delay(10);
 
-					get_next_sample_buf();
+					sample_write_ptr = &data_buffer[0];
+					sample_write_sd_ptr = &data_buffer[0];
+					sample_read_ptr = &data_buffer[0];
+
+					memcpy(sample_write_ptr, &rtc_regs, sizeof(rtc_regs)); // copy to first 4 bytes
+					memcpy(sample_write_ptr+4, &current_sample_channel, sizeof(current_sample_channel)); // copy current channel
+					memcpy(sample_write_ptr+5, &burst, sizeof(burst)); // copy burst
+
+					sample_write_ptr += BYTES_PER_SAMPLE;
+
 					adc_setup(0);
 
-					i2c_master_adc_rdata(BYTES_PER_SAMPLE, sample_write_addr); // clears the DRDY line
+					i2c_master_adc_rdata(BYTES_PER_SAMPLE, sample_write_ptr); // clears the DRDY line
 
 					if (burst <= 0)
 					{
@@ -919,6 +888,29 @@ void loop()
 
 		last_rtc = rtc_regs;
 	}
+
+	if (debug >= 1)
+	{
+		if (last_sample_read_ptr != sample_read_ptr)
+		{
+			last_sample_read_ptr = sample_read_ptr;
+			print_date(&now_tm);
+			SerialDEBUG.printf(" sample_read_ptr %p\r\n", sample_read_ptr);
+		}
+		if (last_sample_write_ptr != sample_write_ptr)
+		{
+			last_sample_write_ptr = sample_write_ptr;
+			print_date(&now_tm);
+			SerialDEBUG.printf(" sample_write_ptr %p\r\n", sample_write_ptr);
+		}
+		if (last_sample_write_sd_ptr != sample_write_sd_ptr)
+		{
+			last_sample_write_sd_ptr = sample_write_sd_ptr;
+			print_date(&now_tm);
+			SerialDEBUG.printf(" sample_write_sd_ptr %p\r\n", sample_write_sd_ptr);
+		}
+	}
+
 	if (debug >= 2)
 	{
 		if (last_state != adc_read_state)
@@ -1030,15 +1022,15 @@ void loop()
 	int32_t to_write;
 	int32_t size_2 = sizeof(data_buffer)/2;
 
-	if (sample_ready >= 0)
+	if (sample_write_ptr != 0)
 	{
-		if (sample_ready >= sample_write_sd)
+		if (sample_write_ptr >= sample_write_sd_ptr)
 		{
-			to_write = (int32_t)sample_ready - (int32_t)sample_write_sd;
+			to_write = (int32_t)sample_write_ptr - (int32_t)sample_write_sd_ptr;
 		}
 		else
 		{
-			to_write = (int32_t)sample_ready - (int32_t)sample_write_sd + sizeof(data_buffer);
+			to_write = (int32_t)sample_write_ptr - (int32_t)sample_write_sd_ptr + sizeof(data_buffer);
 		}
 	}
 	else
@@ -1050,7 +1042,7 @@ void loop()
 		if (debug >= 1)
 		{
 			print_date(&now_tm);
-			SerialDEBUG.printf(" %d write %d ready %d read %d write_sd %d to %d\r\n", run_sample, sample_write, sample_ready, sample_read, sample_write_sd, to_write);
+			SerialDEBUG.printf(" run %d write %p read %p write_sd %p to %d\r\n", run_sample, sample_write_ptr, sample_read_ptr, sample_write_sd_ptr, to_write);
 		}
 	}
 
@@ -1062,7 +1054,7 @@ void loop()
 		if (debug > 0)
 		{
 			print_date(&now_tm);
-			SerialDEBUG.printf(" sample write sd %d\r\n", sample_write_sd);
+			SerialDEBUG.printf(" sample write sd %p\r\n", sample_write_sd_ptr);
 		}
 
 		if (debug > 0)
@@ -1072,14 +1064,14 @@ void loop()
 
 			print_date(&now_tm);
 
-			SerialDEBUG.printf(" sample ready %d data", sample_ready);
+			SerialDEBUG.printf(" sample write %p data ", sample_write_ptr);
 
-			SerialDEBUG.printf("%d %d %d %d %d %d\r\n", data_buffer[sample_ready], data_buffer[sample_ready+1], data_buffer[sample_ready+2], data_buffer[sample_ready+3], data_buffer[sample_ready+4], data_buffer[sample_ready+5], data_buffer[sample_ready+6]);
+			SerialDEBUG.printf("%d %d %d %d %d %d\r\n", *sample_write_sd_ptr, *(sample_write_sd_ptr+1), *(sample_write_sd_ptr+2), *(sample_write_sd_ptr+3), *(sample_write_sd_ptr+4), *(sample_write_sd_ptr+5));
 
-			SerialDEBUG.printf("Write %d length %d file pos %d\r\n", sample_write_sd, sizeof(data_buffer)/2, binFile.position());
+			SerialDEBUG.printf("Write %p length %d file pos %d\r\n", sample_write_sd_ptr, sizeof(data_buffer)/2, binFile.position());
 		}
 
-		if (sample_write_sd <= 0) // only change file when sample number is zero
+		if (sample_write_sd_ptr == &data_buffer[0]) // only change file when sample number is zero
 		{
 			if (!binFile.isOpen())
 			{
@@ -1098,7 +1090,7 @@ void loop()
 				}
 			}
 
-			sample_write_sd = 0;
+			sample_write_sd_ptr = &data_buffer[0];
 		}
 
 		// write data to file
@@ -1108,23 +1100,23 @@ void loop()
 			digitalWrite(PIN_WRITE_LED, 1);
 #endif
 
-			if (size_2 != binFile.write(&data_buffer[sample_write_sd], size_2))
+			if (size_2 != binFile.write(sample_write_sd_ptr, size_2))
 			{
 				uint8_t err = binFile.getError();
 				SerialDEBUG.printf("Write Error %d code %d\r\n", size_2, err);
 			}
 			if (debug >= 1)
 			{
-				hexdump(SerialDEBUG, &data_buffer[sample_write_sd], 32);
+				hexdump(SerialDEBUG, sample_write_sd_ptr, 32);
 			}
 
-			memset(&data_buffer[sample_write_sd], 0xFF, size_2); // clear buffer now that its written to SD card
+			memset(sample_write_sd_ptr, 0xFF, size_2); // clear buffer now that its written to SD card
+		}
 
-			sample_write_sd += size_2;
-			if (sample_write_sd >= sizeof(data_buffer))
-			{
-				sample_write_sd = 0;
-			}
+		sample_write_sd_ptr += size_2;
+		if (sample_write_sd_ptr >= (&data_buffer[0] + sizeof(data_buffer)))
+		{
+			sample_write_sd_ptr = &data_buffer[0];
 		}
 
 		// Shutdown card by  pulling CS in high
@@ -1173,9 +1165,9 @@ void loop()
 		adc_convert = false;
 	}
 
-	if (sample_ready >= 0)
+	if ((sample_write_ptr != 0) && (sample_read_ptr != 0))
 	{
-		while (sample_read != sample_ready)
+		while (sample_read_ptr != sample_write_ptr)
 		{
 			if (debug >= 2)
 			{
@@ -1183,19 +1175,19 @@ void loop()
 				uint8_t *p;
 
 				p = (uint8_t *)&data;
-				*p++ = data_buffer[3];
-				*p++ = data_buffer[2];
-				*p++ = data_buffer[1];
+				*p++ = *sample_read_ptr + 3;
+				*p++ = *sample_read_ptr + 2;
+				*p++ = *sample_read_ptr + 1;
 				*p++ = 0;
 				data = (data << 8) >> 8;
 
-				SerialDEBUG.printf("sample @ %4d = count %3d data %8ld CRC %3d %3d\r\n", sample_read, data_buffer[sample_read], data, data_buffer[sample_read+4], data_buffer[sample_read+5]);
+				SerialDEBUG.printf("sample @ %p (write %p) = count %3d data %8ld CRC %3d %3d\r\n", sample_read_ptr, sample_write_ptr, *sample_read_ptr, data, *(sample_read_ptr+4), *(sample_read_ptr+5));
 			}
 
-			sample_read += BYTES_PER_SAMPLE;
-			if (sample_read >= sizeof(data_buffer))
+			sample_read_ptr += BYTES_PER_SAMPLE;
+			if (sample_read_ptr >= (&data_buffer[0] + sizeof(data_buffer)))
 			{
-				sample_read = 0;
+				sample_read_ptr = &data_buffer[0];
 			}
 		}
 	}

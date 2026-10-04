@@ -54,8 +54,6 @@ void TC5_Handler (void)
 		{
 			if (adc_read_state != ADC_STOP)
 			{
-				sample_ready = sample_write; // last sample is now ready to read
-
 				// missed a tick or ADC did not sample
 				if (adc_read_state != WAIT_TICK)
 				{
@@ -82,8 +80,6 @@ void TC5_Handler (void)
 
 					waiting_for_sample = true;
 				}
-
-				get_next_sample_buf();
 
 				if (adc_read_state == WAIT_PWR_TICK)
 				{

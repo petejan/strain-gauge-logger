@@ -109,22 +109,33 @@ void adc_convert_isr(void)
 		waiting_for_sample = false;
 
 		// read data from ADC, 6 bytes <count><data2><data1><data0><CRC><CRC>
-		if (sample_write_addr)
+		if (sample_write_ptr)
 		{
 			uint8_t *p, *pSample;
-			i2c_master_adc_rdata(BYTES_PER_SAMPLE, sample_write_addr);
-
-			sample_ready = sample_write; // last sample is now ready to read
+			i2c_master_adc_rdata(BYTES_PER_SAMPLE, sample_write_ptr);
 
 			// copy from sample_write_addr to channel_data
 			p = (uint8_t *)&channel_data[current_sample_channel];
-			pSample = sample_write_addr + 3;
+			pSample = sample_write_ptr + 3;
 			*p++ = *pSample--;
 			*p++ = *pSample--;
 			*p++ = *pSample--;
 			*p++ = 0;
 			// sign extend the channel_data
 			channel_data[current_sample_channel] = (channel_data[current_sample_channel] << 8) >> 8;
+
+			sample_write_ptr += BYTES_PER_SAMPLE;
+			if (sample_write_ptr >= &data_buffer[0] + sizeof(data_buffer))
+			{
+				sample_write_ptr = &data_buffer[0];
+
+				memcpy(sample_write_ptr, &rtc_regs, sizeof(rtc_regs)); // copy to first 4 bytes
+				memcpy(sample_write_ptr+4, &current_sample_channel, sizeof(current_sample_channel)); // copy current channel
+				memcpy(sample_write_ptr+5, &burst, sizeof(burst)); // copy burst
+
+				sample_write_ptr += BYTES_PER_SAMPLE;
+
+			}
 		}
 
 		// check for continuous mode
@@ -132,8 +143,6 @@ void adc_convert_isr(void)
 		{
 
 			adc_read_state = WAIT_ADC;
-
-			get_next_sample_buf();
 
 			if (burst > 0)
 			{
@@ -159,7 +168,6 @@ void adc_convert_isr(void)
 			{
 				// sample next channel directly without waiting for the next tick
 				adc_read_state = WAIT_ADC;
-				get_next_sample_buf();
 
 				adc_setup(current_sample_channel);
 			}
@@ -192,7 +200,6 @@ void adc_convert_isr(void)
 				{
 					// sample next channel directly without waiting for the next tick
 					adc_read_state = WAIT_ADC;
-					get_next_sample_buf();
 
 					adc_setup(current_sample_channel);
 				}

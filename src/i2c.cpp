@@ -51,6 +51,11 @@ void i2c_master_init()
 	/* synchronization busy */
 	while(I2C_SERCOM->I2CM.SYNCBUSY.bit.SYSOP);
 
+	// Enable the SCL and SDA pins on the sercom: includes increased driver strength, pull-up resistors and pin multiplexer
+	// internal pull ups are only 40k, not enough for I2C 400 kHz
+	PORT->Group[g_APinDescription[PIN_WIRE_SCL].ulPort].PINCFG[g_APinDescription[PIN_WIRE_SCL].ulPin].reg =  PORT_PINCFG_DRVSTR | PORT_PINCFG_PULLEN | PORT_PINCFG_PMUXEN;
+	PORT->Group[g_APinDescription[PIN_WIRE_SDA].ulPort].PINCFG[g_APinDescription[PIN_WIRE_SDA].ulPin].reg = PORT_PINCFG_DRVSTR | PORT_PINCFG_PULLEN | PORT_PINCFG_PMUXEN;
+
 	pinPeripheral(PIN_WIRE_SCL, PIO_SERCOM);
 	pinPeripheral(PIN_WIRE_SDA, PIO_SERCOM);
 }
@@ -138,17 +143,18 @@ void i2c_master_adc_rdata(uint8_t len, uint8_t buf[])
 		i2c_timer = I2C_TIMEOUT;
 		while ((!I2C_SERCOM->I2CM.INTFLAG.bit.SB) && (i2c_timer > 0)) { i2c_timer--; };
 
-		buf[i] = I2C_SERCOM->I2CM.DATA.reg;
-
-		i++;
-		len--;
-
 		if (len == 1) // next byte is NACKd
 		{
 			/* Acknowledge section is set as NACK signal by writing 1 in ACKACT bit */
 			I2C_SERCOM->I2CM.CTRLB.reg |= SERCOM_I2CM_CTRLB_ACKACT;
 			while(I2C_SERCOM->I2CM.SYNCBUSY.bit.SYSOP);
 		}
+
+		buf[i] = I2C_SERCOM->I2CM.DATA.reg;
+
+		i++;
+		len--;
+
 	}
 
 	I2C_SERCOM->I2CM.CTRLB.bit.CMD = 0x3;

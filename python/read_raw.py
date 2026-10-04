@@ -25,10 +25,6 @@ with open(file, "rb") as f:
     bytes_per_sample = int(bytes_match.group(1))
     print('bytes per sample', bytes_match.groups(), ' bytes', bytes_per_sample)
 
-    block_match = re.search("bytes per block = (\\d*)", hdr)
-    bytes_per_block = int(block_match.group(1))
-    print('bytes per block', block_match.groups(), ' bytes', bytes_per_block)
-
     sample_rate_match = re.search("sample rate = (\\d*) \\(ms\\)", hdr)
     sample_rate = int(sample_rate_match.group(1))
     print('sample rate', sample_rate_match.groups(), ' sample rate', sample_rate)
@@ -63,7 +59,12 @@ with open(file, "rb") as f:
     bytes_read = len(sample_data)
     block_sample = 0
 
+    ch = 0
+    burst = 0
+
     while sample_data != b"":
+
+        print('sample_data', sample_data.hex())
 
         cnt = int.from_bytes(sample_data[0:1], byteorder='big', signed=False)
         data = int.from_bytes(sample_data[1:4], byteorder='big', signed=True)
@@ -72,6 +73,7 @@ with open(file, "rb") as f:
         check_data = sample_data[0:4]
         ck_calc = int(crc.crc_poly(check_data, 16, 0x1021, crc=0xFFFF)) # CRC = CCITT initial value of 0xffff, x16 + x12 + x5 + 1
 
+        print(sample, "count", cnt, "data", data, "crc", c, ck_calc, burst)
         if c == ck_calc:
             print(dt, sample, "count", cnt, "data", data, "crc", c, ck_calc, ch, burst)
             var_raw[sample] = data
