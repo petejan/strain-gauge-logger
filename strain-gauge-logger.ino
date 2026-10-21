@@ -816,6 +816,7 @@ void loop()
 					int new_reg1 = channel_config_reg1[0];
 					const int data_rate[] = {20, 45, 90, 175, 330, 600, 1000};
 					int dr = data_rate[(new_reg1 >> 5)];
+
 					if (new_reg1 & ADS122C04_OP_MODE_TURBO)
 					{
 						dr = dr * 2;
@@ -832,15 +833,11 @@ void loop()
 					sample_write_sd_ptr = &data_buffer[0];
 					sample_read_ptr = &data_buffer[0];
 
-					memcpy(sample_write_ptr, &rtc_regs, sizeof(rtc_regs)); // copy to first 4 bytes
-					memcpy(sample_write_ptr+4, &current_sample_channel, sizeof(current_sample_channel)); // copy current channel
-					memcpy(sample_write_ptr+5, &burst, sizeof(burst)); // copy burst
-
-					sample_write_ptr += BYTES_PER_SAMPLE;
-
 					adc_setup(0);
 
-					i2c_master_adc_rdata(BYTES_PER_SAMPLE, sample_write_ptr); // clears the DRDY line
+					uint8_t sample[BYTES_PER_SAMPLE];
+
+					i2c_master_adc_rdata(BYTES_PER_SAMPLE, &sample[0]); // clears the DRDY line
 
 					if (burst <= 0)
 					{

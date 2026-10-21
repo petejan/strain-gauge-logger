@@ -112,6 +112,20 @@ void adc_convert_isr(void)
 		if (sample_write_ptr)
 		{
 			uint8_t *p, *pSample;
+
+			// first 'sample' in buffer is timestamp and channel/burst sample number
+			if (sample_write_ptr == &data_buffer[0])
+			{
+				sample_write_ptr = &data_buffer[0];
+
+				memcpy(sample_write_ptr, &rtc_regs, sizeof(rtc_regs)); // copy to first 4 bytes
+				memcpy(sample_write_ptr+4, &current_sample_channel, sizeof(current_sample_channel)); // copy current channel
+				memcpy(sample_write_ptr+5, &burst, sizeof(burst)); // copy burst
+
+				sample_write_ptr += BYTES_PER_SAMPLE;
+			}
+
+			// read adc into data_buffer
 			i2c_master_adc_rdata(BYTES_PER_SAMPLE, sample_write_ptr);
 
 			// copy from sample_write_addr to channel_data
@@ -121,20 +135,15 @@ void adc_convert_isr(void)
 			*p++ = *pSample--;
 			*p++ = *pSample--;
 			*p++ = 0;
+
 			// sign extend the channel_data
 			channel_data[current_sample_channel] = (channel_data[current_sample_channel] << 8) >> 8;
 
+			// increment sample pointer, circular buffer
 			sample_write_ptr += BYTES_PER_SAMPLE;
 			if (sample_write_ptr >= &data_buffer[0] + sizeof(data_buffer))
 			{
 				sample_write_ptr = &data_buffer[0];
-
-				memcpy(sample_write_ptr, &rtc_regs, sizeof(rtc_regs)); // copy to first 4 bytes
-				memcpy(sample_write_ptr+4, &current_sample_channel, sizeof(current_sample_channel)); // copy current channel
-				memcpy(sample_write_ptr+5, &burst, sizeof(burst)); // copy burst
-
-				sample_write_ptr += BYTES_PER_SAMPLE;
-
 			}
 		}
 
